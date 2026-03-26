@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ValCrown Admin</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg0:#080808;--bg1:#101010;--bg2:#181818;--bg3:#222;--bg4:#2a2a2a;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text1:#f0f0f0;--text2:#888;--text3:#555;
+  --accent:#7c6aff;--accent2:#6254e0;--accent-dim:rgba(124,106,255,0.12);
+  --green:#22d47a;--green-dim:rgba(34,212,122,0.1);
+  --yellow:#f5a623;--yellow-dim:rgba(245,166,35,0.1);
+  --red:#ff4d4d;--red-dim:rgba(255,77,77,0.1);
+  --blue:#4d9fff;--blue-dim:rgba(77,159,255,0.1);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg0);color:var(--text1);min-height:100vh;-webkit-font-smoothing:antialiased;}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+
+/* LOGIN */
+.login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;}
+.login-box{background:var(--bg1);border:1px solid var(--border);border-radius:16px;padding:36px;width:100%;max-width:360px;}
+.login-logo{text-align:center;margin-bottom:28px;}
+.login-ico{width:52px;height:52px;background:var(--accent);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;margin:0 auto 10px;box-shadow:0 8px 32px rgba(124,106,255,0.3);}
+.login-logo h1{font-size:20px;font-weight:700;}
+.login-logo p{font-size:12px;color:var(--text2);margin-top:3px;}
+.inp{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;color:var(--text1);font-size:13px;margin-bottom:10px;outline:none;transition:border-color 0.15s;}
+.inp:focus{border-color:var(--accent);}
+.inp::placeholder{color:var(--text3);}
+.login-btn{width:100%;height:42px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.15s;}
+.login-btn:hover{background:var(--accent2);}
+.err-msg{background:var(--red-dim);border:1px solid rgba(255,77,77,0.2);color:var(--red);padding:8px 12px;border-radius:7px;font-size:12px;margin-bottom:10px;display:none;}
+.err-msg.show{display:block;}
+
+/* APP */
+.app{display:none;min-height:100vh;}
+.app.show{display:flex;}
+
+/* SIDEBAR */
+.sidebar{width:220px;background:var(--bg1);border-right:1px solid var(--border);padding:16px 10px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0;}
+.sb-logo{display:flex;align-items:center;gap:8px;padding:4px 8px;margin-bottom:20px;}
+.sb-ico{width:26px;height:26px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;}
+.sb-name{font-size:14px;font-weight:700;}
+.sb-tag{font-size:9px;color:var(--accent);background:var(--accent-dim);padding:1px 6px;border-radius:4px;font-weight:700;margin-left:2px;}
+.nav-sec{margin-bottom:16px;}
+.nav-lbl{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;padding:0 8px;margin-bottom:4px;}
+.nav-btn{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;font-size:13px;font-weight:500;color:var(--text2);background:none;border:none;width:100%;text-align:left;cursor:pointer;transition:all 0.15s;margin-bottom:1px;}
+.nav-btn:hover{background:var(--bg3);color:var(--text1);}
+.nav-btn.active{background:var(--accent-dim);color:var(--accent);}
+.nav-btn svg{width:15px;height:15px;flex-shrink:0;}
+.sb-bottom{margin-top:auto;}
+.admin-pill{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.admin-av{width:28px;height:28px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.admin-nm{font-size:12px;font-weight:600;}
+.admin-role{font-size:10px;color:var(--text3);}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;}
+.pg{display:none;padding:24px;}
+.pg.active{display:block;}
+.ph{margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:gap;}
+.ph-left h1{font-size:20px;font-weight:700;letter-spacing:-0.3px;}
+.ph-left p{font-size:13px;color:var(--text2);margin-top:3px;}
+.ph-right{display:flex;gap:8px;align-items:center;}
+
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+@media(max-width:1000px){.g4{grid-template-columns:1fr 1fr;}}
+
+/* CARDS */
+.card{background:var(--bg1);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;}
+.card-head{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;}
+
+/* STATS */
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.stat-val{font-size:26px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;}
+.stat-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-top:5px;font-weight:600;}
+.stat-sub{font-size:11px;color:var(--text2);margin-top:4px;}
+.green{color:var(--green)}.yellow{color:var(--yellow)}.red{color:var(--red)}.blue{color:var(--blue)}.accent{color:var(--accent)}
+
+/* BUTTONS */
+.btn{height:34px;padding:0 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary{background:var(--accent);color:#fff;}.btn-primary:hover{background:var(--accent2);}
+.btn-ghost{background:var(--bg3);color:var(--text1);border:1px solid var(--border2);}.btn-ghost:hover{background:var(--bg4);}
+.btn-green{background:var(--green-dim);color:var(--green);border:1px solid rgba(34,212,122,0.2);}.btn-green:hover{background:var(--green);color:#000;}
+.btn-red{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,77,77,0.2);}.btn-red:hover{background:var(--red);color:#fff;}
+.btn-yellow{background:var(--yellow-dim);color:var(--yellow);border:1px solid rgba(245,166,35,0.2);}.btn-yellow:hover{background:var(--yellow);color:#000;}
+.btn-sm{height:28px;padding:0 10px;font-size:11px;}
+.btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;border-bottom:1px solid var(--border2);}
+td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text1);vertical-align:middle;}
+tr:last-child td{border:none;}
+tr:hover td{background:rgba(255,255,255,0.02);}
+.mono{font-family:monospace;font-size:11px;color:var(--text2);}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;}
+.badge-green{background:var(--green-dim);color:var(--green);}
+.badge-red{background:var(--red-dim);color:var(--red);}
+.badge-yellow{background:var(--yellow-dim);color:var(--yellow);}
+.badge-blue{background:var(--blue-dim);color:var(--blue);}
+.badge-accent{background:var(--accent-dim);color:var(--accent);}
+
+/* SEARCH */
+.search{background:var(--bg2);border:1px solid var(--border2);border-radius:7px;padding:8px 12px;color:var(--text1);font-size:13px;outline:none;width:220px;}
+.search:focus{border-color:var(--accent);}
+.search::placeholder{color:var(--text3);}
+
+/* CHART */
+.chart-wrap{position:relative;height:200px;}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:100;}
+.modal-bg.show{display:flex;}
+.modal{background:var(--bg1);border:1px solid var(--border2);border-radius:14px;padding:24px;width:100%;max-width:420px;}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:4px;}
+.modal-sub{font-size:12px;color:var(--text2);margin-bottom:18px;}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;}
+.form-row{margin-bottom:12px;}
+.form-lbl{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:5px;display:block;}
+.form-inp{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:7px;padding:9px 12px;color:var(--text1);font-size:13px;outline:none;}
+.form-inp:focus{border-color:var(--accent);}
+select.form-inp{cursor:pointer;}
+
+/* KEY DISPLAY */
+.key-box{background:var(--bg0);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;font-family:monospace;font-size:13px;color:var(--accent);letter-spacing:1px;margin:8px 0;display:flex;align-items:center;justify-content:space-between;}
+.copy-btn{background:var(--accent-dim);border:none;color:var(--accent);padding:4px 10px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;}
+.copy-btn:hover{background:var(--accent);color:#fff;}
+
+/* VALIDATOR */
+.validator-result{padding:12px 14px;border-radius:8px;font-size:13px;margin-top:10px;display:none;}
+.validator-result.show{display:block;}
+.validator-result.valid{background:var(--green-dim);border:1px solid rgba(34,212,122,0.2);color:var(--green);}
+.validator-result.invalid{background:var(--red-dim);border:1px solid rgba(255,77,77,0.2);color:var(--red);}
+.validator-result.warn{background:var(--yellow-dim);border:1px solid rgba(245,166,35,0.2);color:var(--yellow);}
+
+/* LOADING */
+.loading{text-align:center;padding:32px;color:var(--text3);font-size:13px;}
+.empty{text-align:center;padding:24px;color:var(--text3);font-size:13px;}
+.refresh-time{font-size:11px;color:var(--text3);}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-ico">V</div>
+      <h1>ValCrown Admin</h1>
+      <p>Management Dashboard</p>
+    </div>
+    <div class="err-msg" id="login-err"></div>
+    <input class="inp" type="email" id="l-email" placeholder="Admin email address" />
+    <input class="inp" type="password" id="l-pass" placeholder="Password" onkeypress="if(event.key==='Enter')doLogin()" />
+    <button class="login-btn" onclick="doLogin()">Sign In to Admin Panel</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sb-logo">
+      <div class="sb-ico">V</div>
+      <span class="sb-name">ValCrown</span>
+      <span class="sb-tag">ADMIN</span>
+    </div>
+
+    <div class="nav-sec">
+      <div class="nav-lbl">Overview</div>
+      <button class="nav-btn active" onclick="go('overview')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </button>
+    </div>
+
+    <div class="nav-sec">
+      <div class="nav-lbl">Analytics</div>
+      <button class="nav-btn" onclick="go('sales')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        Sales & Revenue
+      </button>
+      <button class="nav-btn" onclick="go('countries');loadCountries()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        Users by Country
+      </button>
+      <button class="nav-btn" onclick="go('sessions');loadSessions()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Active Sessions
+      </button>
+    </div>
+
+    <div class="nav-sec">
+      <div class="nav-lbl">Licenses</div>
+      <button class="nav-btn" onclick="go('keygen')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+        Generate Keys
+      </button>
+      <button class="nav-btn" onclick="go('validator')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Key Validator
+      </button>
+      <button class="nav-btn" onclick="go('licenses');loadLicenses()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        All Licenses
+      </button>
+    </div>
+
+    <div class="nav-sec">
+      <div class="nav-lbl">Manage</div>
+      <button class="nav-btn" onclick="go('users');loadUsers()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        Users
+      </button>
+      <button class="nav-btn" onclick="go('ai-costs')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        AI Cost Tracker
+      </button>
+    </div>
+
+    <div class="sb-bottom">
+      <div class="admin-pill">
+        <div class="admin-av" id="admin-av">A</div>
+        <div>
+          <div class="admin-nm" id="admin-nm">Admin</div>
+          <div class="admin-role">Administrator</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost" onclick="doLogout()" style="width:100%;height:30px;font-size:11px;">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main">
+
+    <!-- ── OVERVIEW ── -->
+    <div id="pg-overview" class="pg active">
+      <div class="ph">
+        <div class="ph-left"><h1>Dashboard</h1><p id="last-updated">Loading...</p></div>
+        <div class="ph-right"><button class="btn btn-ghost" onclick="loadOverview()">↻ Refresh</button></div>
+      </div>
+
+      <div class="g4" id="overview-stats" style="margin-bottom:14px;">
+        <div class="loading">Loading stats...</div>
+      </div>
+
+      <div class="g2">
+        <div class="card">
+          <div class="card-head">Revenue — Last 30 Days</div>
+          <div class="chart-wrap"><canvas id="revenue-chart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-head">Recent Signups</div>
+          <div id="recent-signups"><div class="loading">Loading...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SALES ── -->
+    <div id="pg-sales" class="pg">
+      <div class="ph">
+        <div class="ph-left"><h1>Sales & Revenue</h1><p>Payment history and revenue breakdown</p></div>
+        <div class="ph-right"><button class="btn btn-ghost" onclick="loadSales()">↻ Refresh</button></div>
+      </div>
+      <div class="g3" id="sales-stats" style="margin-bottom:14px;"><div class="loading">Loading...</div></div>
+      <div class="card">
+        <div class="card-head">Payment History</div>
+        <div id="payments-table"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- ── COUNTRIES ── -->
+    <div id="pg-countries" class="pg">
+      <div class="ph">
+        <div class="ph-left"><h1>Users by Country</h1><p>Geographic distribution of active users with IP addresses</p></div>
+        <div class="ph-right"><button class="btn btn-ghost" onclick="loadCountries()">↻ Refresh</button></div>
+      </div>
+      <div class="card">
+        <div class="card-head">Active Users — Country Breakdown</div>
+        <div id="countries-table"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- ── SESSIONS ── -->
+    <div id="pg-sessions" class="pg">
+      <div class="ph">
+        <div class="ph-left"><h1>Active Sessions</h1><p>Users online in the last 24 hours</p></div>
+        <div class="ph-right">
+          <input class="search" placeholder="Search email or IP..." oninput="filterTable('sessions-table', this.value)" />
+          <button class="btn btn-ghost" onclick="loadSessions()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="card">
+        <div id="sessions-table"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- ── KEY GENERATOR ── -->
+    <div id="pg-keygen" class="pg">
+      <div class="ph">
+        <div class="ph-left"><h1>Generate License Keys</h1><p>Create new ValCrown license keys</p></div>
+      </div>
+
+      <div class="g2">
+        <div class="card">
+          <div class="card-head">Key Settings</div>
+          <div class="form-row">
+            <label class="form-lbl">Number of Keys</label>
+            <input class="form-inp" type="number" id="gen-count" value="1" min="1" max="100" />
+          </div>
+          <div class="form-row">
+            <label class="form-lbl">Plan</label>
+            <select class="form-inp" id="gen-plan">
+              <option value="trial">Trial (7 days)</option>
+              <option value="pro" selected>Pro</option>
+              <option value="lifetime">Lifetime</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-lbl">Expires In (days) — leave empty for lifetime</label>
+            <input class="form-inp" type="number" id="gen-expires" placeholder="e.g. 365 for 1 year" />
+          </div>
+          <div class="form-row">
+            <label class="form-lbl">Notes (optional)</label>
+            <input class="form-inp" type="text" id="gen-notes" placeholder="e.g. Promo batch March 2026" />
+          </div>
+          <button class="btn btn-primary" onclick="generateKeys()" style="width:100%;height:40px;margin-top:4px;">Generate Keys</button>
+        </div>
+
+        <div class="card">
+          <div class="card-head">Generated Keys</div>
+          <div id="generated-keys">
+            <div class="empty">Generated keys will appear here</div>
+          </div>
+          <div id="copy-all-wrap" style="display:none;margin-top:10px;">
+            <button class="btn btn-ghost" onclick="copyAllKeys()" style="width:100%;">Copy All Keys</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── KEY VALIDATOR ── -->
+    <div id="pg-validator" class="pg">
+      <div class="ph">
+        <div class="ph-left"><h1>Key Validator</h1><p>Check if a license key is valid — does not redeem or activate it</p></div>
+      </div>
+
+      <div class="card" style="max-width:520px;">
+        <div class="card-head">Validate License Key</div>
+        <div class="form-row">
+          <label class="form-lbl">License Key</label>
+          <input class="form-inp" type="text" id="val-key" placeholder="VC-XXXXXXXX-XXXXXXXX-XXXXXXXX"
+            style="font-family:monospace;font-size:14px;letter-spacing:1px;text-transform:uppercase;"
+            oninput="this.value=this.value.toUpperCase()"
+            onkeypress="if(event.key==='Enter')validateKey()" />
+        </div>
+        <button class="btn btn-primary" onclick="validateKey()" style="width:100%;height:40px;">Check Key</button>
+
+        <div class="validator-result" id="val-result"></div>
+      </div>
+
+      <div class="card" style="max-width:520px;">
+        <div class="card-head">What This Checks</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.8;">
+          <div>✓ Key exists in database</div>
+          <div>✓ Key status (active / revoked / expired)</div>
+          <div>✓ Which plan it belongs to</div>
+          <div>✓ Which user it's assigned to</div>
+          <div>✓ Which device it's bound to</div>
+          <div>✓ Expiry date</div>
+          <div style="margin-top:8px;color:var(--text3);font-size:12px;">⚠ This check does NOT activate or redeem the key</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ALL LICENSES ── -->
+    <div id="pg-licenses" class="pg">
+      <div class="ph">
+        <div class="ph-left"><h1>All Licenses</h1><p>Manage every license key</p></div>
+        <div class="ph-right">
+          <input class="search" placeholder="Search key or email..." oninput="filterTable('licenses-table', this.value)" />
+          <button class="btn btn-ghost" onclick="loadLicenses()">↻ Refresh</button>
+          <button class="btn btn-primary" onclick="go('keygen')">+ Generate</button>
+        </div>
+      </div>
+      <div class="card">
+        <div id="licenses-table"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- ── USERS ── -->
+    <div id="pg-users" class="pg">
+      <div class="ph">
+        <div class="ph-left"><h1>Users</h1><p>All registered accounts</p></div>
+        <div class="ph-right">
+          <input class="search" placeholder="Search email..." oninput="filterTable('users-table', this.value)" />
+          <button class="btn btn-ghost" onclick="loadUsers()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="card">
+        <div id="users-table"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- ── AI COSTS ── -->
+    <div id="pg-ai-costs" class="pg">
+      <div class="ph">
+        <div class="ph-left"><h1>AI Cost Tracker</h1><p>Claude + Gemini usage and spend</p></div>
+        <div class="ph-right"><button class="btn btn-ghost" onclick="loadAiCosts()">↻ Refresh</button></div>
+      </div>
+      <div class="g3" id="ai-stats" style="margin-bottom:14px;"><div class="loading">Loading...</div></div>
+      <div class="card">
+        <div class="card-head">Monthly Breakdown</div>
+        <div id="ai-monthly"><div class="loading">Loading...</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal-bg" id="confirm-modal">
+  <div class="modal">
+    <div class="modal-title" id="confirm-title">Confirm Action</div>
+    <div class="modal-sub" id="confirm-msg">Are you sure?</div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-red" id="confirm-btn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_URL = 'https://api.valcrown.com';
+let token = localStorage.getItem('vc_admin_token');
+let revenueChart = null;
+let allGeneratedKeys = [];
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+
+async function doLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const pass = document.getElementById('l-pass').value;
+  const errEl = document.getElementById('login-err');
+  errEl.classList.remove('show');
+
+  if (!email || !pass) { showErr('Please enter email and password'); return; }
+
+  try {
+    const res = await fetch(`${API_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass, deviceVid: 'ADMIN-WEB-PANEL' }),
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      // Check admin role
+      if (data.user?.role !== 'admin') {
+        showErr('Access denied — admin account required');
+        return;
+      }
+      token = data.accessToken;
+      localStorage.setItem('vc_admin_token', token);
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').classList.add('show');
+      document.getElementById('admin-nm').textContent = data.user.fullName || data.user.email;
+      document.getElementById('admin-av').textContent = (data.user.fullName || data.user.email)[0].toUpperCase();
+      loadOverview();
+    } else {
+      showErr(data.error || 'Login failed');
+    }
+  } catch (err) {
+    showErr('Cannot connect to server. Check your internet.');
+  }
+}
+
+function showErr(msg) {
+  const el = document.getElementById('login-err');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function doLogout() {
+  localStorage.removeItem('vc_admin_token');
+  token = null;
+  location.reload();
+}
+
+async function api(method, endpoint, body = null) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(`${API_URL}${endpoint}`, opts);
+  if (res.status === 401) { doLogout(); return null; }
+  return res.json();
+}
+
+// Auto-login if token exists
+if (token) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('show');
+  loadOverview();
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+
+function go(name) {
+  document.querySelectorAll('.pg').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('pg-' + name)?.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    if (b.getAttribute('onclick')?.includes("'" + name + "'")) b.classList.add('active');
+  });
+  // Auto-load
+  const loaders = { 'overview': loadOverview, 'sales': loadSales, 'ai-costs': loadAiCosts };
+  if (loaders[name]) loaders[name]();
+}
+
+// ── OVERVIEW ──────────────────────────────────────────────────────────────────
+
+async function loadOverview() {
+  document.getElementById('last-updated').textContent = 'Loading...';
+  try {
+    const data = await api('GET', '/api/analytics/overview');
+    if (!data) return;
+
+    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+
+    // Stats cards
+    document.getElementById('overview-stats').innerHTML = `
+      <div class="stat"><div class="stat-val green">${data.activeUsers}</div><div class="stat-lbl">Active Users</div><div class="stat-sub">Last 24 hours</div></div>
+      <div class="stat"><div class="stat-val blue">${data.activeDevices}</div><div class="stat-lbl">Active Devices</div><div class="stat-sub">Bound licenses</div></div>
+      <div class="stat"><div class="stat-val accent">${data.licenses?.active || 0}</div><div class="stat-lbl">Active Licenses</div><div class="stat-sub">of ${data.licenses?.total || 0} total</div></div>
+      <div class="stat"><div class="stat-val yellow">${data.totalUsers}</div><div class="stat-lbl">Total Users</div><div class="stat-sub">All time</div></div>
+    `;
+
+    // Recent signups
+    document.getElementById('recent-signups').innerHTML = data.recentUsers?.length
+      ? data.recentUsers.map(u => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-size:13px;font-weight:500;">${u.email}</div>
+            <div style="font-size:11px;color:var(--text3);">${new Date(u.created_at).toLocaleDateString()}</div>
+          </div>
+          <span class="badge ${u.role === 'admin' ? 'badge-accent' : 'badge-blue'}">${u.role}</span>
+        </div>`).join('')
+      : '<div class="empty">No users yet</div>';
+
+    // Revenue chart
+    loadRevenueChart();
+
+  } catch (err) {
+    document.getElementById('overview-stats').innerHTML = '<div class="loading">Failed to load — check API connection</div>';
+  }
+}
+
+async function loadRevenueChart() {
+  try {
+    const data = await api('GET', '/api/analytics/sales-chart?period=30');
+    if (!data?.chart) return;
+
+    const ctx = document.getElementById('revenue-chart').getContext('2d');
+    if (revenueChart) revenueChart.destroy();
+
+    revenueChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.chart.map(d => new Date(d.date).toLocaleDateString('en', { month: 'short', day: 'numeric' })),
+        datasets: [{
+          label: 'Revenue ($)',
+          data: data.chart.map(d => parseFloat(d.revenue) || 0),
+          borderColor: '#7c6aff',
+          backgroundColor: 'rgba(124,106,255,0.1)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 3,
+          pointBackgroundColor: '#7c6aff',
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#555', font: { size: 10 } } },
+          y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#555', font: { size: 10 }, callback: v => '$' + v } },
+        },
+      },
+    });
+  } catch (err) {
+    // Chart data unavailable
+  }
+}
+
+// ── SALES ─────────────────────────────────────────────────────────────────────
+
+async function loadSales() {
+  try {
+    const [overview, payments] = await Promise.all([
+      api('GET', '/api/analytics/overview'),
+      api('GET', '/api/analytics/payments'),
+    ]);
+
+    if (overview) {
+      document.getElementById('sales-stats').innerHTML = `
+        <div class="stat"><div class="stat-val green">$${overview.sales?.today?.total?.toFixed(2) || '0.00'}</div><div class="stat-lbl">Today</div><div class="stat-sub">${overview.sales?.today?.count || 0} sales</div></div>
+        <div class="stat"><div class="stat-val yellow">$${overview.sales?.week?.total?.toFixed(2) || '0.00'}</div><div class="stat-lbl">This Week</div><div class="stat-sub">${overview.sales?.week?.count || 0} sales</div></div>
+        <div class="stat"><div class="stat-val accent">$${overview.sales?.lifetime?.total?.toFixed(2) || '0.00'}</div><div class="stat-lbl">Lifetime</div><div class="stat-sub">${overview.sales?.lifetime?.count || 0} total sales</div></div>
+      `;
+    }
+
+    if (payments?.payments?.length) {
+      document.getElementById('payments-table').innerHTML = `
+        <table>
+          <thead><tr><th>Date</th><th>Email</th><th>Plan</th><th>Amount</th><th>Currency</th><th>Status</th></tr></thead>
+          <tbody>
+            ${payments.payments.map(p => `
+              <tr>
+                <td class="mono">${new Date(p.created_at).toLocaleDateString()}</td>
+                <td>${p.customer_email || p.email || '—'}</td>
+                <td><span class="badge badge-accent">${p.plan || 'pro'}</span></td>
+                <td style="font-weight:700;color:var(--green);">$${parseFloat(p.amount_usd || 0).toFixed(2)}</td>
+                <td class="mono">${p.currency || 'USD'}</td>
+                <td><span class="badge badge-green">${p.status}</span></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+    } else {
+      document.getElementById('payments-table').innerHTML = '<div class="empty">No payments yet — connect Stripe webhook to see sales</div>';
+    }
+  } catch (err) {
+    document.getElementById('sales-stats').innerHTML = '<div class="loading">Failed to load sales</div>';
+  }
+}
+
+// ── COUNTRIES ─────────────────────────────────────────────────────────────────
+
+async function loadCountries() {
+  try {
+    const data = await api('GET', '/api/analytics/countries');
+    if (!data?.countries?.length) {
+      document.getElementById('countries-table').innerHTML = '<div class="empty">No location data yet — users appear here after they log in</div>';
+      return;
+    }
+    document.getElementById('countries-table').innerHTML = `
+      <table>
+        <thead><tr><th>Country</th><th>City</th><th>Active Users</th><th>Last Seen</th></tr></thead>
+        <tbody>
+          ${data.countries.map(c => `
+            <tr>
+              <td><span style="margin-right:6px;">${getFlagEmoji(c.country_code)}</span>${c.country || 'Unknown'}</td>
+              <td class="mono">${c.city || '—'}</td>
+              <td style="font-weight:700;color:var(--accent);">${c.user_count}</td>
+              <td class="mono">${c.last_seen ? new Date(c.last_seen).toLocaleDateString() : '—'}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch (err) {
+    document.getElementById('countries-table').innerHTML = '<div class="loading">Failed to load</div>';
+  }
+}
+
+// ── SESSIONS ──────────────────────────────────────────────────────────────────
+
+async function loadSessions() {
+  try {
+    const data = await api('GET', '/api/analytics/active-sessions');
+    if (!data?.sessions?.length) {
+      document.getElementById('sessions-table').innerHTML = '<div class="empty">No active sessions in the last 24 hours</div>';
+      return;
+    }
+    document.getElementById('sessions-table').innerHTML = `
+      <table id="sessions-table-inner">
+        <thead><tr><th>Email</th><th>IP Address</th><th>Country</th><th>Device</th><th>Plan</th><th>Since</th></tr></thead>
+        <tbody>
+          ${data.sessions.map(s => `
+            <tr>
+              <td>${s.email}</td>
+              <td class="mono">${s.ip_address || '—'}</td>
+              <td>${getFlagEmoji(s.country_code)} ${s.country || '—'}</td>
+              <td class="mono" style="font-size:10px;">${s.device_name || s.os_version || '—'}</td>
+              <td><span class="badge badge-accent">${s.plan || 'pro'}</span></td>
+              <td class="mono">${new Date(s.created_at).toLocaleTimeString()}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch (err) {
+    document.getElementById('sessions-table').innerHTML = '<div class="loading">Failed to load sessions</div>';
+  }
+}
+
+// ── KEY GENERATOR ─────────────────────────────────────────────────────────────
+
+async function generateKeys() {
+  const count = parseInt(document.getElementById('gen-count').value) || 1;
+  const plan = document.getElementById('gen-plan').value;
+  const expires = document.getElementById('gen-expires').value;
+  const notes = document.getElementById('gen-notes').value;
+
+  if (count > 100) { alert('Maximum 100 keys at once'); return; }
+
+  const keysEl = document.getElementById('generated-keys');
+  keysEl.innerHTML = '<div class="loading">Generating...</div>';
+
+  const data = await api('POST', '/api/admin/licenses/generate', {
+    count, plan,
+    expiresInDays: expires ? parseInt(expires) : null,
+    notes: notes || `Generated ${new Date().toLocaleDateString()}`,
+  });
+
+  if (data?.keys?.length) {
+    allGeneratedKeys = data.keys.map(k => k.license_key);
+    keysEl.innerHTML = data.keys.map(k => `
+      <div class="key-box">
+        <span>${k.license_key}</span>
+        <button class="copy-btn" onclick="copyText('${k.license_key}', this)">Copy</button>
+      </div>`).join('');
+    document.getElementById('copy-all-wrap').style.display = 'block';
+  } else {
+    keysEl.innerHTML = '<div class="empty">Failed to generate keys — check admin token</div>';
+  }
+}
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text);
+  if (btn) { const orig = btn.textContent; btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = orig, 1500); }
+}
+
+function copyAllKeys() {
+  navigator.clipboard.writeText(allGeneratedKeys.join('\n'));
+  alert('All keys copied to clipboard!');
+}
+
+// ── KEY VALIDATOR ─────────────────────────────────────────────────────────────
+
+async function validateKey() {
+  const key = document.getElementById('val-key').value.trim().toUpperCase();
+  const resultEl = document.getElementById('val-result');
+  resultEl.className = 'validator-result';
+  resultEl.style.display = 'none';
+
+  if (!key) { alert('Enter a license key to validate'); return; }
+
+  // Call validate endpoint (read-only check)
+  const data = await api('GET', `/api/admin/licenses/check?key=${encodeURIComponent(key)}`);
+
+  if (!data) { return; }
+
+  resultEl.style.display = 'block';
+
+  if (data.found) {
+    const status = data.license.status;
+    resultEl.className = 'validator-result ' + (status === 'active' ? 'valid' : status === 'revoked' ? 'invalid' : 'warn');
+    resultEl.innerHTML = `
+      <div style="font-size:14px;font-weight:700;margin-bottom:8px;">
+        ${status === 'active' ? '✅ Valid Key' : status === 'revoked' ? '❌ Revoked Key' : '⚠️ ' + status.toUpperCase()}
+      </div>
+      <div style="font-size:12px;line-height:1.8;opacity:0.85;">
+        <div><strong>Key:</strong> ${data.license.license_key}</div>
+        <div><strong>Plan:</strong> ${data.license.plan}</div>
+        <div><strong>Status:</strong> ${data.license.status}</div>
+        <div><strong>Assigned to:</strong> ${data.user?.email || 'Not assigned'}</div>
+        <div><strong>Device bound:</strong> ${data.device ? 'Yes — ' + (data.device.device_name || data.device.device_vid?.substring(0, 12) + '...') : 'Not yet activated'}</div>
+        <div><strong>Expires:</strong> ${data.license.expires_at ? new Date(data.license.expires_at).toLocaleDateString() : 'Never (Lifetime)'}</div>
+        <div><strong>Created:</strong> ${new Date(data.license.created_at).toLocaleDateString()}</div>
+      </div>
+    `;
+  } else {
+    resultEl.className = 'validator-result invalid';
+    resultEl.innerHTML = '<div style="font-weight:700;">❌ Key Not Found</div><div style="font-size:12px;margin-top:4px;opacity:0.85;">This key does not exist in the ValCrown database.</div>';
+  }
+}
+
+// ── ALL LICENSES ──────────────────────────────────────────────────────────────
+
+async function loadLicenses() {
+  try {
+    const data = await api('GET', '/api/admin/licenses?limit=100');
+    if (!data?.licenses?.length) { document.getElementById('licenses-table').innerHTML = '<div class="empty">No licenses found</div>'; return; }
+    document.getElementById('licenses-table').innerHTML = `
+      <table>
+        <thead><tr><th>License Key</th><th>Plan</th><th>Status</th><th>User</th><th>Device</th><th>Expires</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${data.licenses.map(l => `
+            <tr>
+              <td class="mono" style="font-size:11px;">${l.license_key}</td>
+              <td><span class="badge badge-accent">${l.plan}</span></td>
+              <td><span class="badge ${l.status === 'active' ? 'badge-green' : l.status === 'revoked' ? 'badge-red' : 'badge-yellow'}">${l.status}</span></td>
+              <td style="font-size:12px;">${l.user_email || '—'}</td>
+              <td class="mono" style="font-size:10px;">${l.device_name || (l.device_vid ? l.device_vid.substring(0,10)+'...' : '—')}</td>
+              <td class="mono">${l.expires_at ? new Date(l.expires_at).toLocaleDateString() : '∞'}</td>
+              <td>
+                <div style="display:flex;gap:4px;">
+                  <button class="btn btn-yellow btn-sm" onclick="resetDevice('${l.id}')">Reset Device</button>
+                  <button class="btn btn-red btn-sm" onclick="revokeLicense('${l.id}')">Revoke</button>
+                </div>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch (err) { document.getElementById('licenses-table').innerHTML = '<div class="loading">Failed to load</div>'; }
+}
+
+async function revokeLicense(id) {
+  if (!confirm('Revoke this license? The user will lose access immediately.')) return;
+  await api('PATCH', `/api/admin/licenses/${id}/revoke`, { reason: 'Revoked by admin' });
+  loadLicenses();
+}
+
+async function resetDevice(id) {
+  if (!confirm('Reset device binding? The user can activate on a new device.')) return;
+  await api('DELETE', `/api/admin/licenses/${id}/device`);
+  loadLicenses();
+}
+
+// ── USERS ─────────────────────────────────────────────────────────────────────
+
+async function loadUsers() {
+  try {
+    const data = await api('GET', '/api/admin/users?limit=100');
+    if (!data?.users?.length) { document.getElementById('users-table').innerHTML = '<div class="empty">No users yet</div>'; return; }
+    document.getElementById('users-table').innerHTML = `
+      <table>
+        <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Joined</th><th>Last Login</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${data.users.map(u => `
+            <tr>
+              <td>${u.email}</td>
+              <td>${u.full_name || '—'}</td>
+              <td><span class="badge ${u.role === 'admin' ? 'badge-accent' : 'badge-blue'}">${u.role}</span></td>
+              <td class="mono">${new Date(u.created_at).toLocaleDateString()}</td>
+              <td class="mono">${u.last_login ? new Date(u.last_login).toLocaleDateString() : 'Never'}</td>
+              <td><span class="badge ${u.is_banned ? 'badge-red' : 'badge-green'}">${u.is_banned ? 'Banned' : 'Active'}</span></td>
+              <td>
+                ${!u.is_banned ? `<button class="btn btn-red btn-sm" onclick="banUser('${u.id}')">Ban</button>` : `<span style="font-size:11px;color:var(--text3);">Banned</span>`}
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch (err) { document.getElementById('users-table').innerHTML = '<div class="loading">Failed to load</div>'; }
+}
+
+async function banUser(id) {
+  const reason = prompt('Reason for ban:');
+  if (!reason) return;
+  await api('PATCH', `/api/admin/users/${id}/ban`, { reason });
+  loadUsers();
+}
+
+// ── AI COSTS ──────────────────────────────────────────────────────────────────
+
+async function loadAiCosts() {
+  try {
+    const data = await api('GET', '/api/admin/ai-stats');
+    if (!data) return;
+
+    document.getElementById('ai-stats').innerHTML = `
+      <div class="stat"><div class="stat-val yellow">$${parseFloat(data.aiCostThisMonth || 0).toFixed(4)}</div><div class="stat-lbl">This Month</div><div class="stat-sub">Hard cap: $${data.hardCapUSD}</div></div>
+      <div class="stat"><div class="stat-val accent">${data.cacheHitRate || '0%'}</div><div class="stat-lbl">Cache Hit Rate</div><div class="stat-sub">Last 7 days</div></div>
+      <div class="stat"><div class="stat-val green">${data.monthly?.reduce((a, b) => a + parseInt(b.total_calls || 0), 0) || 0}</div><div class="stat-lbl">Total AI Calls</div><div class="stat-sub">All time</div></div>
+    `;
+
+    if (data.monthly?.length) {
+      document.getElementById('ai-monthly').innerHTML = `
+        <table>
+          <thead><tr><th>Month</th><th>Model</th><th>Calls</th><th>Tokens</th><th>Cost</th></tr></thead>
+          <tbody>
+            ${data.monthly.map(m => `
+              <tr>
+                <td class="mono">${m.month_year}</td>
+                <td><span class="badge badge-blue">${m.model}</span></td>
+                <td>${parseInt(m.total_calls).toLocaleString()}</td>
+                <td class="mono">${parseInt(m.total_tokens || 0).toLocaleString()}</td>
+                <td style="color:var(--yellow);font-weight:700;">$${parseFloat(m.total_cost_usd || 0).toFixed(4)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+    } else {
+      document.getElementById('ai-monthly').innerHTML = '<div class="empty">No AI usage yet — add ANTHROPIC_API_KEY to see data</div>';
+    }
+  } catch (err) { document.getElementById('ai-stats').innerHTML = '<div class="loading">Failed to load AI data</div>'; }
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+
+function filterTable(containerId, query) {
+  const rows = document.querySelectorAll(`#${containerId} tbody tr`);
+  const q = query.toLowerCase();
+  rows.forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function getFlagEmoji(countryCode) {
+  if (!countryCode || countryCode.length !== 2) return '🌍';
+  const codePoints = countryCode.toUpperCase().split('').map(c => 0x1F1E0 + c.charCodeAt(0) - 65);
+  return String.fromCodePoint(...codePoints);
+}
+
+function closeModal() { document.getElementById('confirm-modal').classList.remove('show'); }
+
+// Auto-refresh overview every 2 minutes
+setInterval(() => { if (document.getElementById('pg-overview').classList.contains('active')) loadOverview(); }, 120000);
+</script>
+</body>
+</html>
