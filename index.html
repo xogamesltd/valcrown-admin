@@ -544,10 +544,10 @@ async function loadOverview() {
 
     // Stats cards
     document.getElementById('overview-stats').innerHTML = `
-      <div class="stat"><div class="stat-val green">${data.activeUsers}</div><div class="stat-lbl">Active Users</div><div class="stat-sub">Last 24 hours</div></div>
-      <div class="stat"><div class="stat-val blue">${data.activeDevices}</div><div class="stat-lbl">Active Devices</div><div class="stat-sub">Bound licenses</div></div>
+      <div class="stat"><div class="stat-val green">${data.totalUsers || 0}</div><div class="stat-lbl">Active Users</div><div class="stat-sub">Last 24 hours</div></div>
+      <div class="stat"><div class="stat-val blue">${data.activeSessions || 0}</div><div class="stat-lbl">Active Devices</div><div class="stat-sub">Bound licenses</div></div>
       <div class="stat"><div class="stat-val accent">${data.licenses?.active || 0}</div><div class="stat-lbl">Active Licenses</div><div class="stat-sub">of ${data.licenses?.total || 0} total</div></div>
-      <div class="stat"><div class="stat-val yellow">${data.totalUsers}</div><div class="stat-lbl">Total Users</div><div class="stat-sub">All time</div></div>
+      <div class="stat"><div class="stat-val yellow">${data.totalUsers || 0}</div><div class="stat-lbl">Total Users</div><div class="stat-sub">All time</div></div>
     `;
 
     // Recent signups
