@@ -598,7 +598,7 @@ async function loadRevenueChart() {
         plugins: { legend: { display: false } },
         scales: {
           x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#555', font: { size: 10 } } },
-          y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#555', font: { size: 10 }, callback: v => '$' + v } },
+          y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#555', font: { size: 10 }, callback: v => '₹' + v } },
         },
       },
     });
@@ -635,7 +635,7 @@ async function loadSales() {
                 <td>${p.customer_email || p.email || '—'}</td>
                 <td><span class="badge badge-accent">${p.plan || 'pro'}</span></td>
                 <td style="font-weight:700;color:var(--green);">$${parseFloat(p.amount_usd || 0).toFixed(2)}</td>
-                <td class="mono">${p.currency || 'USD'}</td>
+                <td class="mono">${p.currency || 'INR'}</td>
                 <td><span class="badge badge-green">${p.status}</span></td>
               </tr>`).join('')}
           </tbody>
@@ -870,7 +870,7 @@ async function loadAiCosts() {
     if (!data) return;
 
     document.getElementById('ai-stats').innerHTML = `
-      <div class="stat"><div class="stat-val yellow">$${parseFloat(data.aiCostThisMonth || 0).toFixed(4)}</div><div class="stat-lbl">This Month</div><div class="stat-sub">Hard cap: $${data.hardCapUSD}</div></div>
+      <div class="stat"><div class="stat-val yellow">$${parseFloat(data.aiCostThisMonth || 0).toFixed(4)}</div><div class="stat-lbl">This Month</div><div class="stat-sub">Hard cap: $${data.hardCapINR}</div></div>
       <div class="stat"><div class="stat-val accent">${data.cacheHitRate || '0%'}</div><div class="stat-lbl">Cache Hit Rate</div><div class="stat-sub">Last 7 days</div></div>
       <div class="stat"><div class="stat-val green">${data.monthly?.reduce((a, b) => a + parseInt(b.total_calls || 0), 0) || 0}</div><div class="stat-lbl">Total AI Calls</div><div class="stat-sub">All time</div></div>
     `;
