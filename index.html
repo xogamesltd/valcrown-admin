@@ -186,15 +186,15 @@ select.form-inp{cursor:pointer;}
 
     <div class="nav-sec">
       <div class="nav-lbl">Analytics</div>
-      <button class="nav-btn" data-id="${t.id}" data-subject="${t.subject||''}" data-name="${t.name||''}" data-email="${t.email}" onclick="openReplyById(this)"go('sales')">
+      <button class="nav-btn" onclick="go('sales')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
         Sales & Revenue
       </button>
-      <button class="nav-btn" data-id="${t.id}" data-subject="${t.subject||''}" data-name="${t.name||''}" data-email="${t.email}" onclick="openReplyById(this)"go('countries');loadCountries()">
+      <button class="nav-btn" onclick="go('countries');loadCountries()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
         Users by Country
       </button>
-      <button class="nav-btn" data-id="${t.id}" data-subject="${t.subject||''}" data-name="${t.name||''}" data-email="${t.email}" onclick="openReplyById(this)"go('sessions');loadSessions()">
+      <button class="nav-btn" onclick="go('sessions');loadSessions()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Active Sessions
       </button>
@@ -202,15 +202,15 @@ select.form-inp{cursor:pointer;}
 
     <div class="nav-sec">
       <div class="nav-lbl">Licenses</div>
-      <button class="nav-btn" data-id="${t.id}" data-subject="${t.subject||''}" data-name="${t.name||''}" data-email="${t.email}" onclick="openReplyById(this)"go('keygen')">
+      <button class="nav-btn" onclick="go('keygen')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
         Generate Keys
       </button>
-      <button class="nav-btn" data-id="${t.id}" data-subject="${t.subject||''}" data-name="${t.name||''}" data-email="${t.email}" onclick="openReplyById(this)"go('validator')">
+      <button class="nav-btn" onclick="go('validator')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Key Validator
       </button>
-      <button class="nav-btn" data-id="${t.id}" data-subject="${t.subject||''}" data-name="${t.name||''}" data-email="${t.email}" onclick="openReplyById(this)"go('licenses');loadLicenses()">
+      <button class="nav-btn" onclick="go('licenses');loadLicenses()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
         All Licenses
       </button>
@@ -218,15 +218,15 @@ select.form-inp{cursor:pointer;}
 
     <div class="nav-sec">
       <div class="nav-lbl">Manage</div>
-      <button class="nav-btn" data-id="${t.id}" data-subject="${t.subject||''}" data-name="${t.name||''}" data-email="${t.email}" onclick="openReplyById(this)"go('users');loadUsers()">
+      <button class="nav-btn" onclick="go('users');loadUsers()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
         Users
       </button>
-      <button class="nav-btn" data-id="${t.id}" data-subject="${t.subject||''}" data-name="${t.name||''}" data-email="${t.email}" onclick="openReplyById(this)"go('analytics');loadAnalytics()">
+      <button class="nav-btn" onclick="go('analytics');loadAnalytics()">
         📊 Analytics
       </button>
-      <button class="nav-btn" data-id="${t.id}" data-subject="${t.subject||''}" data-name="${t.name||''}" data-email="${t.email}" onclick="openReplyById(this)"go('affiliates');loadAffiliates()">🤝 Affiliates</button>
-      <button class="nav-btn" data-id="${t.id}" data-subject="${t.subject||''}" data-name="${t.name||''}" data-email="${t.email}" onclick="openReplyById(this)"go('tickets');loadTickets()">🎫 Tickets</button>
+      <button class="nav-btn" onclick="go('affiliates');loadAffiliates()">🤝 Affiliates</button>
+      <button class="nav-btn" onclick="go('tickets');loadTickets()">🎫 Tickets</button>
       
       
     </div>
