@@ -474,8 +474,8 @@ async function doLogin() {
     const data = await res.json();
 
     if (res && !res.error) {
-      // Check admin role
-      if (data.user?.role !== 'admin') {
+      // Check admin role — always verify from server not cached token
+      if (!data.user || data.user.role !== 'admin') {
         showErr('Access denied — admin account required');
         return;
       }
