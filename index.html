@@ -225,7 +225,8 @@ select.form-inp{cursor:pointer;}
       <button class="nav-btn" onclick="go('analytics');loadAnalytics()">
         📊 Analytics
       </button>
-      <button class="nav-btn" onclick="go(\'affiliates\');loadAffiliates()">🤝 Affiliates</button>
+      <button class="nav-btn" onclick="go('affiliates');loadAffiliates()">🤝 Affiliates</button>
+      
       
     </div>
 
@@ -1268,45 +1269,57 @@ async function viewFullProfile() {
 function loadRoles() {}
 </script>
 
+  
+
   <!-- AFFILIATES PAGE -->
-  <div id="pg-affiliates" class="pg">
+  <div id="pg-affiliates" class="pg" style="display:none">
     <div class="ph">
-      <div class="ph-left"><h1>Affiliate Program</h1><p>Manage affiliates, approvals, payouts and performance</p></div>
-      <div class="ph-right"><button class="btn btn-primary" onclick="loadAffiliates()">↻ Refresh</button></div>
+      <div class="ph-left">
+        <h1>Affiliate Program</h1>
+        <p>Manage affiliates, approve applications, track performance</p>
+      </div>
+      <div class="ph-right">
+        <button class="btn btn-primary" onclick="loadAffiliates()">↻ Refresh</button>
+      </div>
     </div>
 
-    <!-- Stats -->
+    <!-- Stats row -->
     <div class="g4" style="margin-bottom:16px">
       <div class="stat"><div class="sc2-n" id="af-total">—</div><div class="sc2-l">Total Affiliates</div></div>
       <div class="stat"><div class="sc2-n" id="af-clicks">—</div><div class="sc2-l">Total Clicks</div></div>
       <div class="stat"><div class="sc2-n" id="af-sales">—</div><div class="sc2-l">Total Sales</div></div>
-      <div class="stat"><div class="sc2-n" id="af-comm">—</div><div class="sc2-l">Commissions Owed</div></div>
+      <div class="stat"><div class="sc2-n" id="af-comm" style="color:#00e87a">—</div><div class="sc2-l">Commissions Owed</div></div>
     </div>
 
     <!-- Pending Applications -->
     <div class="card" style="margin-bottom:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <div class="card-head" style="margin:0">⏳ Pending Applications</div>
+        <span id="af-pending-count" style="background:rgba(255,183,77,0.15);color:#ffb74d;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700">0 pending</span>
       </div>
-      <div id="af-pending"><div class="empty">No pending applications</div></div>
+      <div id="af-pending-list"><div class="empty">No pending applications</div></div>
     </div>
 
-    <!-- All Affiliates -->
+    <!-- All Affiliates Table -->
     <div class="card">
       <div class="card-head">All Affiliates</div>
       <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:13px" id="af-table">
-          <thead><tr style="color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:0.5px">
-            <th style="text-align:left;padding:8px 0;border-bottom:1px solid var(--border)">Name</th>
-            <th style="text-align:left;padding:8px 0;border-bottom:1px solid var(--border)">Ref Code</th>
-            <th style="text-align:left;padding:8px 0;border-bottom:1px solid var(--border)">Status</th>
-            <th style="text-align:left;padding:8px 0;border-bottom:1px solid var(--border)">Clicks</th>
-            <th style="text-align:left;padding:8px 0;border-bottom:1px solid var(--border)">Sales</th>
-            <th style="text-align:left;padding:8px 0;border-bottom:1px solid var(--border)">Earned</th>
-            <th style="text-align:left;padding:8px 0;border-bottom:1px solid var(--border)">Pending</th>
-            <th style="text-align:left;padding:8px 0;border-bottom:1px solid var(--border)">Actions</th>
-          </tr></thead>
-          <tbody id="af-tbody"><tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px">Loading...</td></tr></tbody>
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:0.5px">
+              <th style="text-align:left;padding:8px 0 8px;border-bottom:1px solid var(--border)">Affiliate</th>
+              <th style="text-align:left;padding:8px 0;border-bottom:1px solid var(--border)">Ref Code</th>
+              <th style="text-align:left;padding:8px 0;border-bottom:1px solid var(--border)">Status</th>
+              <th style="text-align:right;padding:8px 0;border-bottom:1px solid var(--border)">Clicks</th>
+              <th style="text-align:right;padding:8px 0;border-bottom:1px solid var(--border)">Sales</th>
+              <th style="text-align:right;padding:8px 0;border-bottom:1px solid var(--border)">Earned</th>
+              <th style="text-align:right;padding:8px 0;border-bottom:1px solid var(--border)">Unpaid</th>
+              <th style="text-align:left;padding:8px 0;border-bottom:1px solid var(--border)">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="af-tbody">
+            <tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">Loading...</td></tr>
+          </tbody>
         </table>
       </div>
     </div>
@@ -1316,73 +1329,89 @@ function loadRoles() {}
   async function loadAffiliates() {
     try {
       const [list, stats] = await Promise.all([
-        apiFetch('/api/admin/affiliates'),
-        apiFetch('/api/admin/affiliates/stats'),
+        api('GET', '/api/admin/affiliates'),
+        api('GET', '/api/admin/affiliates/stats'),
       ]);
 
+      if (!list || !stats) return;
+
       // Stats
-      document.getElementById('af-total').textContent = stats.totals?.total_affiliates || 0;
+      document.getElementById('af-total').textContent  = stats.totals?.total_affiliates || 0;
       document.getElementById('af-clicks').textContent = parseInt(stats.totals?.total_clicks || 0).toLocaleString();
-      document.getElementById('af-sales').textContent = parseInt(stats.totals?.total_sales || 0).toLocaleString();
-      const owed = (parseFloat(stats.totals?.total_commissions || 0) - parseFloat(stats.totals?.total_paid || 0)).toFixed(2);
-      document.getElementById('af-comm').textContent = '$' + owed;
+      document.getElementById('af-sales').textContent  = parseInt(stats.totals?.total_sales || 0).toLocaleString();
+      const owed = (parseFloat(stats.totals?.total_commissions || 0) - parseFloat(stats.totals?.total_paid || 0));
+      document.getElementById('af-comm').textContent   = '$' + owed.toFixed(2);
 
       // Pending applications
       const pending = list.filter(a => a.status === 'pending');
-      document.getElementById('af-pending').innerHTML = pending.length ? pending.map(a => `
-        <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg3);border-radius:8px;margin-bottom:8px">
-          <div style="flex:1">
-            <div style="font-weight:600;font-size:14px">${a.name}</div>
-            <div style="font-size:12px;color:var(--text2)">${a.email}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:2px">${a.notes || ''}</div>
-          </div>
-          <button class="btn btn-sm" style="background:rgba(0,232,122,0.15);color:#00e87a;border:1px solid rgba(0,232,122,0.3)" onclick="approveAffiliate('${a.id}')">✓ Approve</button>
-          <button class="btn btn-sm" style="background:rgba(255,79,79,0.15);color:#ff4f4f;border:1px solid rgba(255,79,79,0.3)" onclick="rejectAffiliate('${a.id}')">✕ Reject</button>
-        </div>`).join('') : '<div class="empty">No pending applications</div>';
-
-      // All affiliates table
-      const statusBadge = s => ({
-        active:   '<span style="background:rgba(0,232,122,0.15);color:#00e87a;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">Active</span>',
-        pending:  '<span style="background:rgba(255,183,77,0.15);color:#ffb74d;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">Pending</span>',
-        rejected: '<span style="background:rgba(255,79,79,0.15);color:#ff4f4f;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">Rejected</span>',
-      })[s] || s;
-
-      document.getElementById('af-tbody').innerHTML = list.length ? list.map(a => `
-        <tr style="border-bottom:1px solid var(--border)">
-          <td style="padding:10px 0">
-            <div style="font-weight:600">${a.name}</div>
-            <div style="font-size:11px;color:var(--text3)">${a.email}</div>
-          </td>
-          <td style="padding:10px 0;font-family:monospace;color:var(--accent);font-size:12px">${a.ref_code}</td>
-          <td style="padding:10px 0">${statusBadge(a.status)}</td>
-          <td style="padding:10px 0;color:var(--text2)">${a.total_clicks}</td>
-          <td style="padding:10px 0;color:var(--text2)">${a.total_sales}</td>
-          <td style="padding:10px 0;color:#00e87a;font-weight:600">$${parseFloat(a.total_earned).toFixed(2)}</td>
-          <td style="padding:10px 0;color:#ffb74d">$${parseFloat(a.pending_amount || 0).toFixed(2)}</td>
-          <td style="padding:10px 0">
-            <div style="display:flex;gap:6px">
-              ${a.status !== 'active' ? `<button class="btn btn-xs btn-green" onclick="approveAffiliate('${a.id}')">Approve</button>` : ''}
-              ${a.status === 'active' ? `<button class="btn btn-xs" style="background:rgba(255,79,79,0.15);color:#ff4f4f;border:1px solid rgba(255,79,79,0.3);padding:4px 9px;font-size:11px;border-radius:5px;cursor:pointer" onclick="suspendAffiliate('${a.id}')">Suspend</button>` : ''}
+      document.getElementById('af-pending-count').textContent = pending.length + ' pending';
+      document.getElementById('af-pending-list').innerHTML = pending.length
+        ? pending.map(a => `
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;margin-bottom:8px">
+            <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#7c6aff,#00e87a);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0">
+              ${a.name.charAt(0).toUpperCase()}
             </div>
-          </td>
-        </tr>`).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px">No affiliates yet</td></tr>';
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:14px">${a.name}</div>
+              <div style="font-size:12px;color:var(--text2)">${a.email}</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:4px;line-height:1.5">${a.notes || 'No details provided'}</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:4px">Applied: ${new Date(a.created_at).toLocaleDateString()}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+              <button onclick="affiliateAction('${a.id}','active')" style="background:rgba(0,232,122,0.15);color:#00e87a;border:1px solid rgba(0,232,122,0.3);padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✓ Approve</button>
+              <button onclick="affiliateAction('${a.id}','rejected')" style="background:rgba(255,79,79,0.15);color:#ff4f4f;border:1px solid rgba(255,79,79,0.3);padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✕ Reject</button>
+            </div>
+          </div>`).join('')
+        : '<div class="empty">No pending applications 🎉</div>';
+
+      // Status badge helper
+      const badge = s => ({
+        active:   '<span style="background:rgba(0,232,122,0.15);color:#00e87a;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">Active</span>',
+        pending:  '<span style="background:rgba(255,183,77,0.15);color:#ffb74d;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">Pending</span>',
+        rejected: '<span style="background:rgba(255,79,79,0.15);color:#ff4f4f;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">Rejected</span>',
+        suspended:'<span style="background:rgba(144,144,192,0.15);color:#9090c0;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">Suspended</span>',
+      })[s] || `<span>${s}</span>`;
+
+      // Full table
+      document.getElementById('af-tbody').innerHTML = list.length
+        ? list.map(a => `
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:12px 0">
+              <div style="font-weight:600;font-size:13px">${a.name}</div>
+              <div style="font-size:11px;color:var(--text3)">${a.email}</div>
+            </td>
+            <td style="padding:12px 0">
+              <span style="font-family:monospace;color:#7c6aff;font-size:12px;background:rgba(124,106,255,0.1);padding:3px 8px;border-radius:4px">${a.ref_code}</span>
+            </td>
+            <td style="padding:12px 0">${badge(a.status)}</td>
+            <td style="padding:12px 0;text-align:right;color:var(--text2)">${parseInt(a.total_clicks).toLocaleString()}</td>
+            <td style="padding:12px 0;text-align:right;color:var(--text2)">${a.total_sales}</td>
+            <td style="padding:12px 0;text-align:right;color:#00e87a;font-weight:600">$${parseFloat(a.total_earned).toFixed(2)}</td>
+            <td style="padding:12px 0;text-align:right;color:#ffb74d">$${parseFloat(a.pending_amount || 0).toFixed(2)}</td>
+            <td style="padding:12px 0">
+              <div style="display:flex;gap:5px;flex-wrap:wrap">
+                ${a.status !== 'active'   ? `<button onclick="affiliateAction('${a.id}','active')"    style="background:rgba(0,232,122,0.15);color:#00e87a;border:1px solid rgba(0,232,122,0.3);padding:4px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Approve</button>` : ''}
+                ${a.status === 'active'   ? `<button onclick="affiliateAction('${a.id}','suspended')" style="background:rgba(255,183,77,0.15);color:#ffb74d;border:1px solid rgba(255,183,77,0.3);padding:4px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Suspend</button>` : ''}
+                ${a.status !== 'rejected' ? `<button onclick="affiliateAction('${a.id}','rejected')"  style="background:rgba(255,79,79,0.15);color:#ff4f4f;border:1px solid rgba(255,79,79,0.3);padding:4px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Reject</button>` : ''}
+              </div>
+            </td>
+          </tr>`).join('')
+        : '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">No affiliates yet — share valcrown.com/affiliate-apply.html</td></tr>';
 
     } catch(e) {
-      console.error('Affiliates load error:', e);
+      console.error('loadAffiliates error:', e);
     }
   }
 
-  async function approveAffiliate(id) {
-    await apiFetch('/api/admin/affiliates/' + id, 'PATCH', { status: 'active' });
-    loadAffiliates();
-  }
-  async function rejectAffiliate(id) {
-    await apiFetch('/api/admin/affiliates/' + id, 'PATCH', { status: 'rejected' });
-    loadAffiliates();
-  }
-  async function suspendAffiliate(id) {
-    await apiFetch('/api/admin/affiliates/' + id, 'PATCH', { status: 'suspended' });
-    loadAffiliates();
+  async function affiliateAction(id, status) {
+    const labels = { active: 'Approve', suspended: 'Suspend', rejected: 'Reject' };
+    if (!confirm(`${labels[status] || status} this affiliate?`)) return;
+    try {
+      await api('PATCH', '/api/admin/affiliates/' + id, { status });
+      loadAffiliates();
+    } catch(e) {
+      alert('Action failed: ' + e.message);
+    }
   }
   </script>
 
