@@ -473,7 +473,7 @@ async function doLogin() {
     });
     const data = await res.json();
 
-    if (res && !res.error) {
+    if (res.ok) {
       // Check admin role — always verify from server not cached token
       if (!data.user || data.user.role !== 'admin') {
         showErr('Access denied — admin account required');
@@ -942,7 +942,7 @@ async function assignRoleInline(userId, role, btn) {
 
   const res = await api('POST', '/api/admin/users/' + userId + '/role', { role, reason });
   const el  = document.getElementById('upanel-result-' + userId);
-  if (res && !res.error) {
+  if (res.ok) {
     el.innerHTML = '<span style="color:#00e87a">✅ Role updated to ' + role + ' — email sent</span>';
     const badge = document.getElementById('role-badge-' + userId);
     if (badge) { badge.textContent = role; badge.className = 'badge ' + (role === 'admin' ? 'badge-accent' : 'badge-blue'); }
@@ -956,7 +956,7 @@ async function assignLicenseInline(userId) {
   const days = document.getElementById('licdays-' + userId)?.value;
   const res  = await api('POST', '/api/admin/users/' + userId + '/assign-license', { plan, days: days ? parseInt(days) : null });
   const el   = document.getElementById('upanel-result-' + userId);
-  if (res && !res.error) {
+  if (res.ok) {
     el.innerHTML = '<span style="color:#00e87a">✅ License assigned: ' + (res.license?.license_key || plan) + ' — email sent</span>';
   } else {
     el.innerHTML = '<span style="color:#ff4757">❌ ' + (res?.error || 'Failed') + '</span>';
@@ -1226,7 +1226,7 @@ async function assignRole() {
   const reason = document.getElementById('role-reason').value;
   const res = await api('POST', `/api/admin/users/${selectedRoleUser.id}/role`, { role: selectedRole, reason });
   const el = document.getElementById('role-result');
-  if (res && !res.error) {
+  if (res.ok) {
     el.innerHTML = `<div style="color:#00e87a;font-size:13px">✅ Role updated to <strong>${selectedRole}</strong> — email sent to ${selectedRoleUser.email}</div>`;
     selectedRoleUser.role = selectedRole;
   } else {
@@ -1240,7 +1240,7 @@ async function assignLicense() {
   const days = document.getElementById('lic-days').value;
   const res = await api('POST', `/api/admin/users/${selectedRoleUser.id}/assign-license`, { plan, days: days ? parseInt(days) : null });
   const el = document.getElementById('lic-result');
-  if (res && !res.error) {
+  if (res.ok) {
     el.innerHTML = `<div style="color:#00e87a;font-size:13px">✅ License assigned: <strong>${res.license?.license_key}</strong> — email sent</div>`;
   } else {
     el.innerHTML = `<div style="color:#ff4757;font-size:13px">❌ ${res?.error || 'Failed'}</div>`;
@@ -1254,7 +1254,7 @@ async function toggleBan() {
   const reason   = isBanned ? '' : prompt('Ban reason:') || 'Policy violation';
   const res = await api('POST', `/api/admin/users/${selectedRoleUser.id}/${endpoint}`, { reason });
   const el = document.getElementById('action-result');
-  if (res && !res.error) {
+  if (res.ok) {
     el.innerHTML = `<div style="color:#00e87a;font-size:13px">✅ ${res.message}</div>`;
     selectedRoleUser.is_banned = !isBanned;
     document.getElementById('ban-btn').textContent = !isBanned ? '✅ Unban User' : '🚫 Ban User';
