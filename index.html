@@ -225,10 +225,7 @@ select.form-inp{cursor:pointer;}
       <button class="nav-btn" onclick="go('analytics');loadAnalytics()">
         📊 Analytics
       </button>
-      <button class="nav-btn" onclick="go('ai-costs')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        AI Cost Tracker
-      </button>
+      
     </div>
 
     <div class="sb-bottom">
@@ -416,16 +413,6 @@ select.form-inp{cursor:pointer;}
     </div>
 
     <!-- ── AI COSTS ── -->
-    <div id="pg-ai-costs" class="pg">
-      <div class="ph">
-        <div class="ph-left"><h1>AI Cost Tracker</h1><p>Claude + Gemini usage and spend</p></div>
-        <div class="ph-right"><button class="btn btn-ghost" onclick="loadAiCosts()">↻ Refresh</button></div>
-      </div>
-      <div class="g3" id="ai-stats" style="margin-bottom:14px;"><div class="loading">Loading...</div></div>
-      <div class="card">
-        <div class="card-head">Monthly Breakdown</div>
-        <div id="ai-monthly"><div class="loading">Loading...</div></div>
-      </div>
     <div id="pg-roles" class="pg">
   <div class="ph">
     <div class="ph-left"><h1>Role Manager</h1><p>Assign roles, manage permissions, send upgrade emails</p></div>
@@ -998,37 +985,7 @@ async function unbanUser(id) {
 
 // ── AI COSTS ──────────────────────────────────────────────────────────────────
 
-async function loadAiCosts() {
-  try {
-    const data = await api('GET', '/api/admin/ai-stats');
-    if (!data) return;
 
-    document.getElementById('ai-stats').innerHTML = `
-      <div class="stat"><div class="stat-val yellow">$${parseFloat(data.aiCostThisMonth || 0).toFixed(4)}</div><div class="stat-lbl">This Month</div><div class="stat-sub">Hard cap: $${data.hardCapINR}</div></div>
-      <div class="stat"><div class="stat-val accent">${data.cacheHitRate || '0%'}</div><div class="stat-lbl">Cache Hit Rate</div><div class="stat-sub">Last 7 days</div></div>
-      <div class="stat"><div class="stat-val green">${data.monthly?.reduce((a, b) => a + parseInt(b.total_calls || 0), 0) || 0}</div><div class="stat-lbl">Total AI Calls</div><div class="stat-sub">All time</div></div>
-    `;
-
-    if (data.monthly?.length) {
-      document.getElementById('ai-monthly').innerHTML = `
-        <table>
-          <thead><tr><th>Month</th><th>Model</th><th>Calls</th><th>Tokens</th><th>Cost</th></tr></thead>
-          <tbody>
-            ${data.monthly.map(m => `
-              <tr>
-                <td class="mono">${m.month_year}</td>
-                <td><span class="badge badge-blue">${m.model}</span></td>
-                <td>${parseInt(m.total_calls).toLocaleString()}</td>
-                <td class="mono">${parseInt(m.total_tokens || 0).toLocaleString()}</td>
-                <td style="color:var(--yellow);font-weight:700;">$${parseFloat(m.total_cost_usd || 0).toFixed(4)}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>`;
-    } else {
-      document.getElementById('ai-monthly').innerHTML = '<div class="empty">No AI usage yet — add ANTHROPIC_API_KEY to see data</div>';
-    }
-  } catch (err) { document.getElementById('ai-stats').innerHTML = '<div class="loading">Failed to load AI data</div>'; }
-}
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 
