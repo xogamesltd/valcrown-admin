@@ -227,6 +227,7 @@ select.form-inp{cursor:pointer;}
       </button>
       <button class="nav-btn" onclick="go('affiliates');loadAffiliates()">🤝 Affiliates</button>
       <button class="nav-btn" onclick="go('tickets');loadTickets()">🎫 Tickets</button>
+      <button class="nav-btn" onclick="go('mailer')">📧 Mailer</button>
       
       
     </div>
@@ -524,7 +525,7 @@ function go(name) {
     if (b.getAttribute('onclick')?.includes("'" + name + "'")) b.classList.add('active');
   });
   // Auto-load
-  const loaders = { 'overview': loadOverview, 'sales': loadSales, 'ai-costs': loadAiCosts, 'tickets': loadTickets, 'affiliates': loadAffiliates, 'analytics': loadAnalytics, 'users': loadUsers, 'licenses': loadLicenses };
+  const loaders = { 'overview': loadOverview, 'sales': loadSales, 'ai-costs': loadAiCosts, 'tickets': loadTickets, 'affiliates': loadAffiliates, 'mailer': () => {}, 'analytics': loadAnalytics, 'users': loadUsers, 'licenses': loadLicenses };
   if (loaders[name]) loaders[name]();
 }
 
@@ -1563,8 +1564,15 @@ function loadRoles() {}
     openReply(id, subject, name, email);
   }
 
+  let currentTicketEmail = '';
+  let currentTicketName = '';
+  let currentTicketSubject = '';
+
   function openReply(id, subject, name, email) {
     currentTicketId = id;
+    currentTicketEmail = email;
+    currentTicketName = name;
+    currentTicketSubject = subject;
     document.getElementById('modal-title').textContent = 'Reply to: ' + subject;
     document.getElementById('modal-info').innerHTML = `
       <strong>From:</strong> ${name} &lt;${email}&gt;<br>
@@ -1587,8 +1595,22 @@ function loadRoles() {}
     const status = document.getElementById('modal-status').value;
     if (!reply) { document.getElementById('modal-msg').innerHTML = '<div style="color:#ff4f4f;font-size:12px">Reply cannot be empty</div>'; return; }
     try {
-      await api('PATCH', '/api/tickets/' + currentTicketId + '/reply', { reply, status });
-      document.getElementById('modal-msg').innerHTML = '<div style="color:#00e87a;font-size:12px">✅ Reply sent!</div>';
+      const ticket = await api('PATCH', '/api/tickets/' + currentTicketId + '/reply', { reply, status });
+      // Send email notification to customer
+      try {
+        await fetch('http://gii0dlmlt6iek9ps6qb8n3gi.187.127.136.104.sslip.io/send/ticket-reply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Mailer-Key': 'valcrown-mailer-secret-2026' },
+          body: JSON.stringify({
+            email: currentTicketEmail,
+            name: currentTicketName,
+            ticketId: currentTicketId,
+            subject: currentTicketSubject,
+            reply
+          })
+        });
+      } catch(e) {}
+      document.getElementById('modal-msg').innerHTML = '<div style="color:#00e87a;font-size:12px">✅ Reply sent + customer notified!</div>';
       setTimeout(() => { closeModal(); loadTickets(); }, 1000);
     } catch(e) {
       document.getElementById('modal-msg').innerHTML = `<div style="color:#ff4f4f;font-size:12px">Failed: ${e.message}</div>`;
@@ -1604,6 +1626,204 @@ function loadRoles() {}
   document.getElementById('tk-modal')?.addEventListener('click', function(e) {
     if (e.target === this) closeModal();
   });
+  </script>
+
+
+  <!-- MAILER PAGE -->
+  <div id="pg-mailer" class="pg">
+    <div class="ph">
+      <div class="ph-left"><h1>Custom Mailer</h1><p>Send custom emails to any address directly from admin</p></div>
+    </div>
+
+    <div class="g2" style="align-items:start">
+      <!-- Compose -->
+      <div class="card">
+        <div class="card-head">✉️ Compose Email</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">To (email address)</label>
+            <input id="ml-to" type="email" placeholder="customer@email.com" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">Subject</label>
+            <input id="ml-subject" type="text" placeholder="Your subject line..." style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">Message</label>
+            <textarea id="ml-message" rows="10" placeholder="Type your message here..." style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:8px;font-size:13px;font-family:inherit;outline:none;resize:vertical"></textarea>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">From Name (optional)</label>
+            <input id="ml-from" type="text" placeholder="ValCrown Team" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:8px;font-size:13px;font-family:inherit;outline:none">
+          </div>
+          <button onclick="sendCustomMail()" style="background:#7c6aff;color:#fff;border:none;padding:12px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s" onmouseover="this.style.background='#9d8fff'" onmouseout="this.style.background='#7c6aff'">
+            📤 Send Email
+          </button>
+          <div id="ml-msg" style="font-size:13px;min-height:20px;text-align:center"></div>
+        </div>
+      </div>
+
+      <!-- Quick templates + user picker -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <!-- Quick templates -->
+        <div class="card">
+          <div class="card-head">⚡ Quick Templates</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button onclick="useTemplate('welcome')" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;text-align:left;transition:.15s" onmouseover="this.style.borderColor='#7c6aff'" onmouseout="this.style.borderColor='var(--border2)'">
+              👋 Welcome to ValCrown
+            </button>
+            <button onclick="useTemplate('promo')" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;text-align:left;transition:.15s" onmouseover="this.style.borderColor='#7c6aff'" onmouseout="this.style.borderColor='var(--border2)'">
+              🏷️ Special Promo Offer
+            </button>
+            <button onclick="useTemplate('update')" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;text-align:left;transition:.15s" onmouseover="this.style.borderColor='#7c6aff'" onmouseout="this.style.borderColor='var(--border2)'">
+              🚀 New Update Available
+            </button>
+            <button onclick="useTemplate('followup')" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;text-align:left;transition:.15s" onmouseover="this.style.borderColor='#7c6aff'" onmouseout="this.style.borderColor='var(--border2)'">
+              💬 Trial Follow-up
+            </button>
+            <button onclick="useTemplate('refund')" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;text-align:left;transition:.15s" onmouseover="this.style.borderColor='#7c6aff'" onmouseout="this.style.borderColor='var(--border2)'">
+              💰 Refund Processed
+            </button>
+          </div>
+        </div>
+
+        <!-- Pick from users -->
+        <div class="card">
+          <div class="card-head">👥 Pick a User</div>
+          <input id="ml-user-search" placeholder="Search by email or name..." onkeyup="searchMailUsers()" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:8px 12px;border-radius:8px;font-size:12px;font-family:inherit;outline:none;margin-bottom:8px">
+          <div id="ml-user-list" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:4px">
+            <div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">Search to find users</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sent history -->
+    <div class="card" style="margin-top:0">
+      <div class="card-head">📬 Recent Sends</div>
+      <div id="ml-history"><div class="empty">No emails sent yet this session</div></div>
+    </div>
+  </div>
+
+  <script>
+  const MAILER_URL = 'http://gii0dlmlt6iek9ps6qb8n3gi.187.127.136.104.sslip.io';
+  const MAILER_KEY = 'valcrown-mailer-secret-2026';
+  const mailHistory = [];
+
+  async function sendCustomMail() {
+    const to      = document.getElementById('ml-to').value.trim();
+    const subject = document.getElementById('ml-subject').value.trim();
+    const message = document.getElementById('ml-message').value.trim();
+    const from    = document.getElementById('ml-from').value.trim() || 'ValCrown Team';
+    const msg     = document.getElementById('ml-msg');
+
+    if (!to || !subject || !message) {
+      msg.style.color = '#ff4f4f';
+      msg.textContent = 'Please fill in To, Subject and Message';
+      return;
+    }
+
+    msg.style.color = '#9090c0';
+    msg.textContent = 'Sending...';
+
+    try {
+      const res = await fetch(MAILER_URL + '/send/custom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Mailer-Key': MAILER_KEY },
+        body: JSON.stringify({ to, subject, message, from_name: from })
+      });
+      const d = await res.json();
+      if (d.queued || d.ok || d.id) {
+        msg.style.color = '#00e87a';
+        msg.textContent = '✅ Email sent to ' + to;
+        mailHistory.unshift({ to, subject, time: new Date().toLocaleTimeString() });
+        renderMailHistory();
+        document.getElementById('ml-to').value = '';
+        document.getElementById('ml-subject').value = '';
+        document.getElementById('ml-message').value = '';
+      } else {
+        msg.style.color = '#ff4f4f';
+        msg.textContent = 'Failed: ' + (d.error || 'Unknown error');
+      }
+    } catch(e) {
+      msg.style.color = '#ff4f4f';
+      msg.textContent = 'Network error — check mailer service';
+    }
+  }
+
+  function renderMailHistory() {
+    const el = document.getElementById('ml-history');
+    if (!mailHistory.length) { el.innerHTML = '<div class="empty">No emails sent yet this session</div>'; return; }
+    el.innerHTML = mailHistory.slice(0,10).map(m =>
+      '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">' +
+        '<span style="color:var(--accent)">' + m.to + '</span>' +
+        '<span style="color:var(--text2);flex:1;margin:0 12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + m.subject + '</span>' +
+        '<span style="color:var(--text3);white-space:nowrap">' + m.time + '</span>' +
+      '</div>'
+    ).join('');
+  }
+
+  function useTemplate(type) {
+    const templates = {
+      welcome: {
+        subject: 'Welcome to ValCrown! 🎮',
+        message: 'Hi there,\n\nWelcome to ValCrown! We are thrilled to have you on board.\n\nYour account is ready to go. Download the app and start optimizing your gaming experience today.\n\nDownload: https://valcrown.com/download.html\n\nIf you have any questions, we are here to help.\n\nBest,\nThe ValCrown Team'
+      },
+      promo: {
+        subject: 'Special offer just for you 🏷️',
+        message: 'Hi there,\n\nWe have a special offer for you!\n\nUse code SPECIAL20 at checkout for 20% off any plan.\n\nThis offer expires in 48 hours.\n\nClaim your discount: https://valcrown.com/pricing.html\n\nBest,\nThe ValCrown Team'
+      },
+      update: {
+        subject: 'ValCrown update is here 🚀',
+        message: 'Hi there,\n\nGreat news — a new version of ValCrown is available!\n\nWhat is new:\n• Improved game detection\n• Faster boost activation\n• Bug fixes and performance improvements\n\nUpdate now: https://valcrown.com/download.html\n\nBest,\nThe ValCrown Team'
+      },
+      followup: {
+        subject: 'How is your ValCrown trial going? 💬',
+        message: 'Hi there,\n\nWe noticed you started your free trial of ValCrown. We hope it is going well!\n\nIf you have any questions or need help getting started, just reply to this email — we are happy to help.\n\nUpgrade to Pro: https://valcrown.com/pricing.html\n\nBest,\nThe ValCrown Team'
+      },
+      refund: {
+        subject: 'Your refund has been processed 💰',
+        message: 'Hi there,\n\nYour refund request has been processed successfully.\n\nThe amount will appear in your account within 5-10 business days depending on your bank.\n\nWe are sorry to see you go. If there is anything we could have done better, please let us know.\n\nBest,\nThe ValCrown Team'
+      }
+    };
+    const t = templates[type];
+    if (t) {
+      document.getElementById('ml-subject').value = t.subject;
+      document.getElementById('ml-message').value = t.message;
+    }
+  }
+
+  let allUsers = [];
+  async function loadMailUsers() {
+    if (allUsers.length) return;
+    try {
+      const users = await api('GET', '/api/admin/users');
+      if (users) allUsers = users;
+    } catch(e) {}
+  }
+
+  async function searchMailUsers() {
+    await loadMailUsers();
+    const q = document.getElementById('ml-user-search').value.toLowerCase();
+    const filtered = allUsers.filter(u =>
+      (u.email||'').toLowerCase().includes(q) ||
+      (u.full_name||'').toLowerCase().includes(q)
+    ).slice(0, 10);
+
+    const el = document.getElementById('ml-user-list');
+    if (!filtered.length) { el.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">No users found</div>'; return; }
+    el.innerHTML = filtered.map(u =>
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 8px;background:var(--bg3);border-radius:6px;cursor:pointer" onclick="selectMailUser('' + u.email + '')">' +
+        '<div><div style="font-size:12px;font-weight:600">' + (u.full_name || 'Unknown') + '</div><div style="font-size:11px;color:var(--text3)">' + u.email + '</div></div>' +
+        '<span style="background:rgba(124,106,255,0.15);color:#7c6aff;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">' + (u.role||'user') + '</span>' +
+      '</div>'
+    ).join('');
+  }
+
+  function selectMailUser(email) {
+    document.getElementById('ml-to').value = email;
+    document.getElementById('ml-to').focus();
+  }
   </script>
 
 </body>
