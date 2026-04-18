@@ -218,9 +218,6 @@ select.form-inp{cursor:pointer;}
 
     <div class="nav-sec">
       <div class="nav-lbl">Manage</div>
-      <button class="nav-btn" onclick="go('roles');loadRoles()">
-        👑 Role Manager
-      </button>
       <button class="nav-btn" onclick="go('users');loadUsers()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
         Users
@@ -838,36 +835,164 @@ async function resetDevice(id) {
 }
 
 // ── USERS ─────────────────────────────────────────────────────────────────────
+const ROLE_COLORS = { admin:'#ff4757', moderator:'#00b4d8', vip:'#00e87a', pro:'#7c6aff', user:'#9090c0', trial:'#ffb800' };
+const ROLE_LIST   = ['user','trial','pro','vip','moderator','admin'];
 
 async function loadUsers() {
   try {
     const data = await api('GET', '/api/admin/users?limit=100');
-    if (!data?.users?.length) { document.getElementById('users-table').innerHTML = '<div class="empty">No users yet</div>'; return; }
+    const users = Array.isArray(data) ? data : (data?.users || []);
+    if (!users.length) { document.getElementById('users-table').innerHTML = '<div class="empty">No users yet</div>'; return; }
     document.getElementById('users-table').innerHTML = `
       <table>
         <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Joined</th><th>Last Login</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
-          ${data.users.map(u => `
-            <tr>
+          ${users.map(u => `
+            <tr id="urow-${u.id}">
               <td>${u.email}</td>
               <td>${u.full_name || '—'}</td>
-              <td><span class="badge ${u.role === 'admin' ? 'badge-accent' : 'badge-blue'}">${u.role}</span></td>
+              <td>
+                <span class="badge ${u.role === 'admin' ? 'badge-accent' : 'badge-blue'}" id="role-badge-${u.id}">${u.role}</span>
+              </td>
               <td class="mono">${new Date(u.created_at).toLocaleDateString()}</td>
               <td class="mono">${u.last_login ? new Date(u.last_login).toLocaleDateString() : 'Never'}</td>
-              <td><span class="badge ${u.is_banned ? 'badge-red' : 'badge-green'}">${u.is_banned ? 'Banned' : 'Active'}</span></td>
-              <td>
-                ${!u.is_banned ? `<button class="btn btn-red btn-sm" onclick="banUser('${u.id}')">Ban</button>` : `<span style="font-size:11px;color:var(--text3);">Banned</span>`}
+              <td><span class="badge ${u.is_banned ? 'badge-red' : 'badge-green'}" id="status-badge-${u.id}">${u.is_banned ? 'Banned' : 'Active'}</span></td>
+              <td style="display:flex;gap:4px;flex-wrap:wrap">
+                <button class="btn btn-primary btn-sm" onclick="openUserPanel('${u.id}','${u.email}','${u.role}',${u.is_banned})">⚙ Manage</button>
+                ${!u.is_banned
+                  ? `<button class="btn btn-red btn-sm" onclick="banUser('${u.id}')">Ban</button>`
+                  : `<button class="btn btn-ghost btn-sm" onclick="unbanUser('${u.id}')">Unban</button>`}
+              </td>
+            </tr>
+            <tr id="upanel-${u.id}" style="display:none">
+              <td colspan="7" style="padding:0">
+                <div style="background:var(--bg2);border-top:1px solid var(--border);padding:16px;border-radius:0 0 8px 8px">
+                  <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.8px">
+                    Manage: ${u.email}
+                  </div>
+                  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start">
+
+                    <!-- Assign Role -->
+                    <div style="flex:1;min-width:200px">
+                      <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Assign Role</div>
+                      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
+                        ${ROLE_LIST.map(r => `
+                          <button onclick="assignRoleInline('${u.id}','${r}',this)"
+                            style="padding:4px 10px;border-radius:6px;border:1px solid ${ROLE_COLORS[r]||'#9090c0'};background:${u.role===r?ROLE_COLORS[r]:'transparent'};color:${u.role===r?'#fff':ROLE_COLORS[r]||'#9090c0'};font-size:11px;font-weight:700;cursor:pointer;transition:.15s"
+                            data-role="${r}">${r}</button>`).join('')}
+                      </div>
+                      <input id="reason-${u.id}" placeholder="Reason (optional, sent in email)" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 8px;color:var(--text1);font-size:12px;outline:none">
+                    </div>
+
+                    <!-- Assign License -->
+                    <div style="flex:1;min-width:180px">
+                      <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Assign License</div>
+                      <select id="licplan-${u.id}" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 8px;color:var(--text1);font-size:12px;margin-bottom:6px">
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                        <option value="lifetime">Lifetime</option>
+                        <option value="pro">Pro</option>
+                        <option value="trial14">14-Day Trial</option>
+                      </select>
+                      <input id="licdays-${u.id}" type="number" placeholder="Days (blank=lifetime)" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 8px;color:var(--text1);font-size:12px;outline:none;margin-bottom:6px">
+                      <button class="btn btn-green btn-sm" style="width:100%" onclick="assignLicenseInline('${u.id}')">+ Assign License</button>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div style="flex:0;min-width:140px">
+                      <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Quick Actions</div>
+                      <div style="display:flex;flex-direction:column;gap:5px">
+                        <button class="btn btn-ghost btn-sm" onclick="resetDeviceInline('${u.id}')">🔄 Reset Device</button>
+                        <button class="btn btn-ghost btn-sm" onclick="viewProfileInline('${u.id}')">📋 Full Profile</button>
+                        <button class="btn btn-ghost btn-sm" onclick="openUserPanel('${u.id}','${u.email}','${u.role}',${u.is_banned})">✕ Close</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="upanel-result-${u.id}" style="margin-top:8px;font-size:12px"></div>
+                </div>
               </td>
             </tr>`).join('')}
         </tbody>
       </table>`;
-  } catch (err) { document.getElementById('users-table').innerHTML = '<div class="loading">Failed to load</div>'; }
+  } catch (err) {
+    console.error(err);
+    document.getElementById('users-table').innerHTML = '<div class="loading">Failed to load</div>';
+  }
+}
+
+function openUserPanel(id, email, role, isBanned) {
+  const panel = document.getElementById('upanel-' + id);
+  if (!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  // Close all panels first
+  document.querySelectorAll('[id^="upanel-"]').forEach(p => p.style.display = 'none');
+  if (!isOpen) panel.style.display = '';
+}
+
+async function assignRoleInline(userId, role, btn) {
+  const reason = document.getElementById('reason-' + userId)?.value || '';
+  // Highlight selected
+  btn.closest('div').querySelectorAll('button').forEach(b => {
+    const r = b.getAttribute('data-role');
+    b.style.background = 'transparent';
+    b.style.color = ROLE_COLORS[r] || '#9090c0';
+  });
+  btn.style.background = ROLE_COLORS[role] || '#9090c0';
+  btn.style.color = '#fff';
+
+  const res = await api('POST', '/api/admin/users/' + userId + '/role', { role, reason });
+  const el  = document.getElementById('upanel-result-' + userId);
+  if (res && !res.error) {
+    el.innerHTML = '<span style="color:#00e87a">✅ Role updated to ' + role + ' — email sent</span>';
+    const badge = document.getElementById('role-badge-' + userId);
+    if (badge) { badge.textContent = role; badge.className = 'badge ' + (role === 'admin' ? 'badge-accent' : 'badge-blue'); }
+  } else {
+    el.innerHTML = '<span style="color:#ff4757">❌ ' + (res?.error || 'Failed') + '</span>';
+  }
+}
+
+async function assignLicenseInline(userId) {
+  const plan = document.getElementById('licplan-' + userId)?.value;
+  const days = document.getElementById('licdays-' + userId)?.value;
+  const res  = await api('POST', '/api/admin/users/' + userId + '/assign-license', { plan, days: days ? parseInt(days) : null });
+  const el   = document.getElementById('upanel-result-' + userId);
+  if (res && !res.error) {
+    el.innerHTML = '<span style="color:#00e87a">✅ License assigned: ' + (res.license?.license_key || plan) + ' — email sent</span>';
+  } else {
+    el.innerHTML = '<span style="color:#ff4757">❌ ' + (res?.error || 'Failed') + '</span>';
+  }
+}
+
+async function resetDeviceInline(userId) {
+  if (!confirm('Reset device binding for this user?')) return;
+  const res = await api('POST', '/api/admin/users/' + userId + '/reset-device');
+  const el  = document.getElementById('upanel-result-' + userId);
+  el.innerHTML = res && !res.error
+    ? '<span style="color:#00e87a">✅ Device reset successfully</span>'
+    : '<span style="color:#ff4757">❌ ' + (res?.error || 'Failed') + '</span>';
+}
+
+async function viewProfileInline(userId) {
+  const res = await api('GET', '/api/admin/users/' + userId + '/profile');
+  if (!res || res.error) return;
+  const d = res;
+  const el = document.getElementById('upanel-result-' + userId);
+  el.innerHTML = '<div style="margin-top:8px;padding:12px;background:var(--bg1);border-radius:8px;font-size:12px">'
+    + '<div><strong>Licenses:</strong> ' + (d.licenses||[]).map(l => l.license_key + ' (' + l.plan + ', ' + l.status + ')').join(', ') + '</div>'
+    + '<div style="margin-top:4px"><strong>Devices:</strong> ' + (d.devices||[]).map(dv => (dv.device_name||'Unknown') + ' — ' + (dv.is_active ? '✅ Active' : '❌ Inactive')).join(', ') + '</div>'
+    + '<div style="margin-top:4px"><strong>Sessions:</strong> ' + (d.sessions||[]).length + ' total</div>'
+    + '</div>';
 }
 
 async function banUser(id) {
   const reason = prompt('Reason for ban:');
   if (!reason) return;
-  await api('PATCH', `/api/admin/users/${id}/ban`, { reason });
+  await api('POST', '/api/admin/users/' + id + '/ban', { reason });
+  loadUsers();
+}
+
+async function unbanUser(id) {
+  await api('POST', '/api/admin/users/' + id + '/unban');
   loadUsers();
 }
 
