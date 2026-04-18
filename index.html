@@ -226,6 +226,7 @@ select.form-inp{cursor:pointer;}
         📊 Analytics
       </button>
       <button class="nav-btn" onclick="go('affiliates');loadAffiliates()">🤝 Affiliates</button>
+      <button class="nav-btn" onclick="go('tickets');loadTickets()">🎫 Tickets</button>
       
       
     </div>
@@ -1413,6 +1414,178 @@ function loadRoles() {}
       alert('Action failed: ' + e.message);
     }
   }
+  </script>
+
+
+  <!-- TICKETS PAGE -->
+  <div id="pg-tickets" class="pg">
+    <div class="ph">
+      <div class="ph-left"><h1>Support Tickets</h1><p>View and reply to customer support requests</p></div>
+      <div class="ph-right">
+        <select id="ticket-filter" onchange="loadTickets()" style="background:var(--bg2);border:1px solid var(--border2);color:var(--text);padding:8px 12px;border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer">
+          <option value="all">All Tickets</option>
+          <option value="open">Open</option>
+          <option value="replied">Replied</option>
+          <option value="closed">Closed</option>
+        </select>
+        <button class="btn btn-primary" onclick="loadTickets()" style="margin-left:8px">↻ Refresh</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="g4" style="margin-bottom:16px">
+      <div class="stat"><div class="sc2-n" id="tk-total">—</div><div class="sc2-l">Total Tickets</div></div>
+      <div class="stat"><div class="sc2-n" id="tk-open" style="color:#ffb74d">—</div><div class="sc2-l">Open</div></div>
+      <div class="stat"><div class="sc2-n" id="tk-replied" style="color:#00e87a">—</div><div class="sc2-l">Replied</div></div>
+      <div class="stat"><div class="sc2-n" id="tk-closed" style="color:#9090c0">—</div><div class="sc2-l">Closed</div></div>
+    </div>
+
+    <!-- Tickets list -->
+    <div id="tk-list"><div class="empty">Loading tickets...</div></div>
+
+    <!-- Reply modal -->
+    <div id="tk-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:none;align-items:center;justify-content:center">
+      <div style="background:#0e0e1c;border:1px solid #252545;border-radius:14px;padding:28px;width:100%;max-width:560px;max-height:80vh;overflow-y:auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h2 style="font-size:17px;font-weight:800" id="modal-title">Reply to Ticket</h2>
+          <button onclick="closeModal()" style="background:transparent;border:none;color:#9090c0;font-size:20px;cursor:pointer">✕</button>
+        </div>
+        <div id="modal-info" style="background:#141428;border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px;color:#9090c0;line-height:1.7"></div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:12px;font-weight:600;color:#9090c0;display:block;margin-bottom:6px">Your Reply</label>
+          <textarea id="modal-reply" style="width:100%;background:#141428;border:1px solid #252545;color:#f0f0ff;padding:10px 12px;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;min-height:120px;outline:none" placeholder="Type your reply..."></textarea>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <select id="modal-status" style="background:#141428;border:1px solid #252545;color:#f0f0ff;padding:9px 12px;border-radius:8px;font-size:13px;font-family:inherit;flex:1">
+            <option value="replied">Mark as Replied</option>
+            <option value="open">Keep Open</option>
+            <option value="closed">Mark as Closed</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="submitReply()" style="flex:1;background:#7c6aff;color:#fff;border:none;padding:11px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Send Reply</button>
+          <button onclick="closeModal()" style="background:transparent;border:1px solid #252545;color:#9090c0;padding:11px 18px;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit">Cancel</button>
+        </div>
+        <div id="modal-msg" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  let currentTicketId = null;
+
+  async function loadTickets() {
+    const filter = document.getElementById('ticket-filter')?.value || 'all';
+    try {
+      const tickets = await api('GET', '/api/tickets/all');
+      if (!tickets) return;
+
+      const filtered = filter === 'all' ? tickets : tickets.filter(t => t.status === filter);
+
+      // Stats
+      document.getElementById('tk-total').textContent   = tickets.length;
+      document.getElementById('tk-open').textContent    = tickets.filter(t => t.status === 'open').length;
+      document.getElementById('tk-replied').textContent = tickets.filter(t => t.status === 'replied').length;
+      document.getElementById('tk-closed').textContent  = tickets.filter(t => t.status === 'closed').length;
+
+      if (!filtered.length) {
+        document.getElementById('tk-list').innerHTML = '<div class="empty">No tickets found</div>';
+        return;
+      }
+
+      const statusBadge = s => ({
+        open:    '<span style="background:rgba(255,183,77,0.15);color:#ffb74d;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">Open</span>',
+        replied: '<span style="background:rgba(0,232,122,0.15);color:#00e87a;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">Replied</span>',
+        closed:  '<span style="background:rgba(144,144,192,0.15);color:#9090c0;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">Closed</span>',
+      })[s] || `<span>${s}</span>`;
+
+      const catColor = c => ({
+        'Billing / Payment':    '#ffb74d',
+        'License / Key Problem':'#7c6aff',
+        'Technical Issue':      '#4fc3f7',
+        'Refund Request':       '#ff4f4f',
+        'Device Reset':         '#00e87a',
+        'Feature Request':      '#9d8fff',
+      })[c] || '#9090c0';
+
+      document.getElementById('tk-list').innerHTML = filtered.map(t => `
+        <div style="background:var(--bg2);border:1px solid ${t.status==='open'?'rgba(255,183,77,0.3)':'var(--border)'};border-radius:12px;padding:16px;margin-bottom:10px">
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+                ${statusBadge(t.status)}
+                <span style="background:rgba(${catColor(t.category).slice(1).match(/.{2}/g).map(h=>parseInt(h,16)).join(',')},0.15);color:${catColor(t.category)};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">${t.category || 'General'}</span>
+                <span style="font-size:11px;color:var(--text3)">#${t.id.slice(0,8)}</span>
+                <span style="font-size:11px;color:var(--text3);margin-left:auto">${new Date(t.created_at).toLocaleDateString()} ${new Date(t.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span>
+              </div>
+              <div style="font-weight:700;font-size:14px;margin-bottom:4px">${t.subject}</div>
+              <div style="font-size:12px;color:var(--text2);margin-bottom:8px">
+                From: <strong>${t.name || 'Unknown'}</strong> &lt;${t.email}&gt;
+                ${t.user_email ? '· <span style="color:var(--accent)">Registered user</span>' : '· <span style="color:var(--text3)">Guest</span>'}
+              </div>
+              <div style="font-size:13px;color:var(--text2);background:var(--bg3);border-radius:6px;padding:10px;line-height:1.6;white-space:pre-wrap">${t.message}</div>
+              ${t.admin_reply ? `
+                <div style="margin-top:10px;padding:10px;background:rgba(124,106,255,0.1);border:1px solid rgba(124,106,255,0.2);border-radius:6px">
+                  <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">YOUR REPLY</div>
+                  <div style="font-size:13px;color:var(--text2);white-space:pre-wrap">${t.admin_reply}</div>
+                </div>` : ''}
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+              <button onclick="openReply('${t.id}','${(t.subject||'').replace(/'/g,"\'")}','${(t.name||'').replace(/'/g,"\'")}','${t.email}')" style="background:#7c6aff;color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">
+                ${t.admin_reply ? '✏️ Edit Reply' : '💬 Reply'}
+              </button>
+              ${t.status !== 'closed' ? `<button onclick="quickClose('${t.id}')" style="background:rgba(144,144,192,0.15);color:#9090c0;border:1px solid rgba(144,144,192,0.3);padding:8px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Close</button>` : ''}
+            </div>
+          </div>
+        </div>`).join('');
+
+    } catch(e) {
+      console.error('loadTickets error:', e);
+      document.getElementById('tk-list').innerHTML = '<div class="empty">Failed to load tickets</div>';
+    }
+  }
+
+  function openReply(id, subject, name, email) {
+    currentTicketId = id;
+    document.getElementById('modal-title').textContent = 'Reply to: ' + subject;
+    document.getElementById('modal-info').innerHTML = `
+      <strong>From:</strong> ${name} &lt;${email}&gt;<br>
+      <strong>Ticket ID:</strong> ${id.slice(0,8)}<br>
+      <span style="font-size:11px;color:#5a5a80">Reply will be sent to customer email automatically</span>
+    `;
+    document.getElementById('modal-reply').value = '';
+    document.getElementById('modal-msg').innerHTML = '';
+    document.getElementById('tk-modal').style.display = 'flex';
+    setTimeout(() => document.getElementById('modal-reply').focus(), 100);
+  }
+
+  function closeModal() {
+    document.getElementById('tk-modal').style.display = 'none';
+    currentTicketId = null;
+  }
+
+  async function submitReply() {
+    const reply  = document.getElementById('modal-reply').value.trim();
+    const status = document.getElementById('modal-status').value;
+    if (!reply) { document.getElementById('modal-msg').innerHTML = '<div style="color:#ff4f4f;font-size:12px">Reply cannot be empty</div>'; return; }
+    try {
+      await api('PATCH', `/api/tickets/${currentTicketId}/reply`, { reply, status });
+      document.getElementById('modal-msg').innerHTML = '<div style="color:#00e87a;font-size:12px">✅ Reply sent!</div>';
+      setTimeout(() => { closeModal(); loadTickets(); }, 1000);
+    } catch(e) {
+      document.getElementById('modal-msg').innerHTML = `<div style="color:#ff4f4f;font-size:12px">Failed: ${e.message}</div>`;
+    }
+  }
+
+  async function quickClose(id) {
+    await api('PATCH', `/api/tickets/${id}/status`, { status: 'closed' });
+    loadTickets();
+  }
+
+  // Close modal on backdrop click
+  document.getElementById('tk-modal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
   </script>
 
 </body>
