@@ -218,6 +218,9 @@ select.form-inp{cursor:pointer;}
 
     <div class="nav-sec">
       <div class="nav-lbl">Manage</div>
+      <button class="nav-btn" onclick="go('roles');loadRoles()">
+        👑 Role Manager
+      </button>
       <button class="nav-btn" onclick="go('users');loadUsers()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
         Users
@@ -426,7 +429,13 @@ select.form-inp{cursor:pointer;}
         <div class="card-head">Monthly Breakdown</div>
         <div id="ai-monthly"><div class="loading">Loading...</div></div>
       </div>
-    </div>
+    <div id="pg-roles" class="pg">
+  <div class="ph">
+    <div class="ph-left"><h1>Role Manager</h1><p>Assign roles, manage permissions, send upgrade emails</p></div>
+  </div>
+
+
+  </div>
 
   </div>
 </div>
@@ -1008,5 +1017,181 @@ setInterval(() => { if (document.getElementById('pg-overview').classList.contain
   }
   </script>
 
+<script data-cfasync="false">
+const ROLES_LIST = [
+  { key: 'user',      label: 'Customer',      color: '#9090c0' },
+  { key: 'trial',     label: 'Trial User',    color: '#ffb800' },
+  { key: 'pro',       label: 'Pro Member',    color: '#7c6aff' },
+  { key: 'vip',       label: 'VIP Member',    color: '#00e87a' },
+  { key: 'moderator', label: 'Moderator',     color: '#00b4d8' },
+  { key: 'admin',     label: 'Administrator', color: '#ff4757' },
+];
+
+let selectedRoleUser = null;
+let selectedRole     = null;
+
+async function searchRoleUser(query) {
+  if (!query || query.length < 3) return;
+  const res = await apiFetch(`/api/admin/users?search=${encodeURIComponent(query)}`);
+  if (!res.ok) return;
+  const users = Array.isArray(res.data) ? res.data : (res.data.users || []);
+  const filtered = users.filter(u =>
+    u.email?.toLowerCase().includes(query.toLowerCase()) ||
+    u.id?.toString().includes(query)
+  ).slice(0, 10);
+
+  document.getElementById('role-search-results').innerHTML = filtered.length
+    ? filtered.map(u => `
+        <div onclick="selectRoleUser(${JSON.stringify(u).replace(/"/g,'&quot;')})"
+          style="padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-weight:600;font-size:14px">${u.email}</div>
+            <div style="font-size:11px;color:var(--text2)">${u.full_name||'No name'} · ID: ${u.id?.slice?.(0,8)||u.id}</div>
+          </div>
+          <span style="padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(124,106,255,.15);color:#7c6aff">${u.role||'user'}</span>
+        </div>`).join('')
+    : '<div style="color:var(--text3);font-size:13px">No users found</div>';
+}
+
+function selectRoleUser(u) {
+  selectedRoleUser = u;
+  document.getElementById('role-search-results').innerHTML = '';
+  document.getElementById('role-search').value = u.email;
+  document.getElementById('role-user-card').style.display = 'block';
+
+  document.getElementById('role-user-info').innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;padding:8px 0">
+      <div style="width:44px;height:44px;background:linear-gradient(135deg,#7c6aff,#a89fff);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;flex-shrink:0">
+        ${(u.full_name||u.email||'?')[0].toUpperCase()}
+      </div>
+      <div>
+        <div style="font-size:15px;font-weight:700">${u.full_name||'No name'}</div>
+        <div style="font-size:13px;color:var(--text2)">${u.email}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">ID: ${u.id} · Joined: ${new Date(u.created_at).toLocaleDateString()}</div>
+      </div>
+      <div style="margin-left:auto;text-align:right">
+        <div style="font-size:11px;color:var(--text3)">Current Role</div>
+        <div style="font-size:15px;font-weight:800;color:#7c6aff">${u.role||'user'}</div>
+        ${u.is_banned ? '<div style="font-size:11px;color:#ff4757;margin-top:2px">⚠️ BANNED</div>' : ''}
+      </div>
+    </div>`;
+
+  // Render role buttons
+  document.getElementById('role-buttons').innerHTML = ROLES_LIST.map(r => `
+    <button onclick="selectRole('${r.key}',this)"
+      style="padding:8px 16px;border-radius:8px;border:2px solid ${r.color};background:transparent;color:${r.color};font-weight:700;font-size:13px;cursor:pointer;transition:.2s"
+      data-role="${r.key}">
+      ${r.label}
+    </button>`).join('');
+
+  // Update ban button
+  document.getElementById('ban-btn').textContent = u.is_banned ? '✅ Unban User' : '🚫 Ban User';
+}
+
+function selectRole(role, btn) {
+  selectedRole = role;
+  document.querySelectorAll('#role-buttons button').forEach(b => b.style.opacity = '0.4');
+  btn.style.opacity = '1';
+  btn.style.transform = 'scale(1.05)';
+}
+
+async function assignRole() {
+  if (!selectedRoleUser) return alert('Select a user first');
+  if (!selectedRole)     return alert('Select a role first');
+  const reason = document.getElementById('role-reason').value;
+  const res = await apiFetch(`/api/admin/users/${selectedRoleUser.id}/role`, {
+    method: 'POST',
+    body: JSON.stringify({ role: selectedRole, reason })
+  });
+  const el = document.getElementById('role-result');
+  if (res.ok) {
+    el.innerHTML = `<div style="color:#00e87a;font-size:13px">✅ Role updated to <strong>${selectedRole}</strong> — email sent to ${selectedRoleUser.email}</div>`;
+    selectedRoleUser.role = selectedRole;
+  } else {
+    el.innerHTML = `<div style="color:#ff4757;font-size:13px">❌ ${res.data?.error || 'Failed'}</div>`;
+  }
+}
+
+async function assignLicense() {
+  if (!selectedRoleUser) return alert('Select a user first');
+  const plan = document.getElementById('lic-plan').value;
+  const days = document.getElementById('lic-days').value;
+  const res = await apiFetch(`/api/admin/users/${selectedRoleUser.id}/assign-license`, {
+    method: 'POST',
+    body: JSON.stringify({ plan, days: days ? parseInt(days) : null })
+  });
+  const el = document.getElementById('lic-result');
+  if (res.ok) {
+    el.innerHTML = `<div style="color:#00e87a;font-size:13px">✅ License assigned: <strong>${res.data.license?.license_key}</strong> — email sent</div>`;
+  } else {
+    el.innerHTML = `<div style="color:#ff4757;font-size:13px">❌ ${res.data?.error || 'Failed'}</div>`;
+  }
+}
+
+async function toggleBan() {
+  if (!selectedRoleUser) return;
+  const isBanned = selectedRoleUser.is_banned;
+  const endpoint = isBanned ? 'unban' : 'ban';
+  const reason   = isBanned ? '' : prompt('Ban reason:') || 'Policy violation';
+  const res = await apiFetch(`/api/admin/users/${selectedRoleUser.id}/${endpoint}`, {
+    method: 'POST',
+    body: JSON.stringify({ reason })
+  });
+  const el = document.getElementById('action-result');
+  if (res.ok) {
+    el.innerHTML = `<div style="color:#00e87a;font-size:13px">✅ ${res.data.message}</div>`;
+    selectedRoleUser.is_banned = !isBanned;
+    document.getElementById('ban-btn').textContent = !isBanned ? '✅ Unban User' : '🚫 Ban User';
+  } else {
+    el.innerHTML = `<div style="color:#ff4757;font-size:13px">❌ ${res.data?.error}</div>`;
+  }
+}
+
+async function resetUserDevice() {
+  if (!selectedRoleUser) return;
+  if (!confirm(`Reset device for ${selectedRoleUser.email}?`)) return;
+  const res = await apiFetch(`/api/admin/users/${selectedRoleUser.id}/reset-device`, { method: 'POST' });
+  const el = document.getElementById('action-result');
+  el.innerHTML = res.ok
+    ? `<div style="color:#00e87a;font-size:13px">✅ Device reset</div>`
+    : `<div style="color:#ff4757;font-size:13px">❌ ${res.data?.error}</div>`;
+}
+
+async function viewFullProfile() {
+  if (!selectedRoleUser) return;
+  const res = await apiFetch(`/api/admin/users/${selectedRoleUser.id}/profile`);
+  if (!res.ok) return;
+  const d = res.data;
+  document.getElementById('profile-modal-content').innerHTML = `
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:6px">Account</div>
+      <div style="font-size:13px">Email: <strong>${d.user.email}</strong></div>
+      <div style="font-size:13px">Role: <strong>${d.user.role}</strong></div>
+      <div style="font-size:13px">Joined: ${new Date(d.user.created_at).toLocaleString()}</div>
+      <div style="font-size:13px">Last login: ${d.user.last_login ? new Date(d.user.last_login).toLocaleString() : 'Never'}</div>
+    </div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:6px">Licenses (${d.licenses.length})</div>
+      ${d.licenses.map(l => `<div style="font-size:12px;padding:6px;background:var(--bg2);border-radius:6px;margin-bottom:4px">
+        <strong>${l.license_key}</strong> · ${l.plan} · ${l.status} · ${l.expires_at ? 'Expires: '+new Date(l.expires_at).toLocaleDateString() : 'Lifetime'}
+      </div>`).join('') || '<div style="color:var(--text3);font-size:12px">No licenses</div>'}
+    </div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:6px">Devices (${d.devices.length})</div>
+      ${d.devices.map(dv => `<div style="font-size:12px;padding:6px;background:var(--bg2);border-radius:6px;margin-bottom:4px">
+        VID: <strong>${dv.device_vid||'N/A'}</strong> · ${dv.device_name||'Unknown'} · ${dv.is_active ? '✅ Active' : '❌ Inactive'} · Last seen: ${dv.last_seen ? new Date(dv.last_seen).toLocaleDateString() : 'Never'}
+      </div>`).join('') || '<div style="color:var(--text3);font-size:12px">No devices</div>'}
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:6px">Recent Sessions (${d.sessions.length})</div>
+      ${d.sessions.slice(0,5).map(s => `<div style="font-size:11px;padding:5px;background:var(--bg2);border-radius:6px;margin-bottom:3px">
+        ${new Date(s.created_at).toLocaleString()} · IP: ${s.ip_address||'N/A'} · ${s.is_revoked ? '❌ Revoked' : '✅ Active'}
+      </div>`).join('') || '<div style="color:var(--text3);font-size:12px">No sessions</div>'}
+    </div>`;
+  document.getElementById('profile-modal').style.display = 'flex';
+}
+
+function loadRoles() {}
+</script>
 </body>
 </html>
