@@ -476,7 +476,7 @@ async function doLogin() {
     });
     const data = await res.json();
 
-    if (res.ok) {
+    if (res && !res.error) {
       // Check admin role
       if (data.user?.role !== 'admin') {
         showErr('Access denied — admin account required');
@@ -1032,7 +1032,7 @@ let selectedRole     = null;
 
 async function searchRoleUser(query) {
   if (!query || query.length < 3) return;
-  const res = await apiFetch(`/api/admin/users?search=${encodeURIComponent(query)}`);
+  const res = await api('GET', `/api/admin/users?search=${encodeURIComponent(query)}`);
   if (!res.ok) return;
   const users = Array.isArray(res.data) ? res.data : (res.data.users || []);
   const filtered = users.filter(u =>
@@ -1099,16 +1099,13 @@ async function assignRole() {
   if (!selectedRoleUser) return alert('Select a user first');
   if (!selectedRole)     return alert('Select a role first');
   const reason = document.getElementById('role-reason').value;
-  const res = await apiFetch(`/api/admin/users/${selectedRoleUser.id}/role`, {
-    method: 'POST',
-    body: JSON.stringify({ role: selectedRole, reason })
-  });
+  const res = await api('POST', `/api/admin/users/${selectedRoleUser.id}/role`, { role: selectedRole, reason });
   const el = document.getElementById('role-result');
-  if (res.ok) {
+  if (res && !res.error) {
     el.innerHTML = `<div style="color:#00e87a;font-size:13px">✅ Role updated to <strong>${selectedRole}</strong> — email sent to ${selectedRoleUser.email}</div>`;
     selectedRoleUser.role = selectedRole;
   } else {
-    el.innerHTML = `<div style="color:#ff4757;font-size:13px">❌ ${res.data?.error || 'Failed'}</div>`;
+    el.innerHTML = `<div style="color:#ff4757;font-size:13px">❌ ${res?.error || 'Failed'}</div>`;
   }
 }
 
@@ -1116,15 +1113,12 @@ async function assignLicense() {
   if (!selectedRoleUser) return alert('Select a user first');
   const plan = document.getElementById('lic-plan').value;
   const days = document.getElementById('lic-days').value;
-  const res = await apiFetch(`/api/admin/users/${selectedRoleUser.id}/assign-license`, {
-    method: 'POST',
-    body: JSON.stringify({ plan, days: days ? parseInt(days) : null })
-  });
+  const res = await api('POST', `/api/admin/users/${selectedRoleUser.id}/assign-license`, { plan, days: days ? parseInt(days) : null });
   const el = document.getElementById('lic-result');
-  if (res.ok) {
-    el.innerHTML = `<div style="color:#00e87a;font-size:13px">✅ License assigned: <strong>${res.data.license?.license_key}</strong> — email sent</div>`;
+  if (res && !res.error) {
+    el.innerHTML = `<div style="color:#00e87a;font-size:13px">✅ License assigned: <strong>${res.license?.license_key}</strong> — email sent</div>`;
   } else {
-    el.innerHTML = `<div style="color:#ff4757;font-size:13px">❌ ${res.data?.error || 'Failed'}</div>`;
+    el.innerHTML = `<div style="color:#ff4757;font-size:13px">❌ ${res?.error || 'Failed'}</div>`;
   }
 }
 
@@ -1133,33 +1127,30 @@ async function toggleBan() {
   const isBanned = selectedRoleUser.is_banned;
   const endpoint = isBanned ? 'unban' : 'ban';
   const reason   = isBanned ? '' : prompt('Ban reason:') || 'Policy violation';
-  const res = await apiFetch(`/api/admin/users/${selectedRoleUser.id}/${endpoint}`, {
-    method: 'POST',
-    body: JSON.stringify({ reason })
-  });
+  const res = await api('POST', `/api/admin/users/${selectedRoleUser.id}/${endpoint}`, { reason });
   const el = document.getElementById('action-result');
-  if (res.ok) {
-    el.innerHTML = `<div style="color:#00e87a;font-size:13px">✅ ${res.data.message}</div>`;
+  if (res && !res.error) {
+    el.innerHTML = `<div style="color:#00e87a;font-size:13px">✅ ${res.message}</div>`;
     selectedRoleUser.is_banned = !isBanned;
     document.getElementById('ban-btn').textContent = !isBanned ? '✅ Unban User' : '🚫 Ban User';
   } else {
-    el.innerHTML = `<div style="color:#ff4757;font-size:13px">❌ ${res.data?.error}</div>`;
+    el.innerHTML = `<div style="color:#ff4757;font-size:13px">❌ ${res?.error}</div>`;
   }
 }
 
 async function resetUserDevice() {
   if (!selectedRoleUser) return;
   if (!confirm(`Reset device for ${selectedRoleUser.email}?`)) return;
-  const res = await apiFetch(`/api/admin/users/${selectedRoleUser.id}/reset-device`, { method: 'POST' });
+  const res = await api('POST', `/api/admin/users/${selectedRoleUser.id}/reset-device`);
   const el = document.getElementById('action-result');
   el.innerHTML = res.ok
     ? `<div style="color:#00e87a;font-size:13px">✅ Device reset</div>`
-    : `<div style="color:#ff4757;font-size:13px">❌ ${res.data?.error}</div>`;
+    : `<div style="color:#ff4757;font-size:13px">❌ ${res?.error}</div>`;
 }
 
 async function viewFullProfile() {
   if (!selectedRoleUser) return;
-  const res = await apiFetch(`/api/admin/users/${selectedRoleUser.id}/profile`);
+  const res = await api('GET', `/api/admin/users/${selectedRoleUser.id}/profile`);
   if (!res.ok) return;
   const d = res.data;
   document.getElementById('profile-modal-content').innerHTML = `
