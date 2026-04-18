@@ -524,7 +524,7 @@ function go(name) {
     if (b.getAttribute('onclick')?.includes("'" + name + "'")) b.classList.add('active');
   });
   // Auto-load
-  const loaders = { 'overview': loadOverview, 'sales': loadSales, 'ai-costs': loadAiCosts };
+  const loaders = { 'overview': loadOverview, 'sales': loadSales, 'ai-costs': loadAiCosts, 'tickets': loadTickets, 'affiliates': loadAffiliates, 'analytics': loadAnalytics, 'users': loadUsers, 'licenses': loadLicenses };
   if (loaders[name]) loaders[name]();
 }
 
@@ -1569,7 +1569,7 @@ function loadRoles() {}
     const status = document.getElementById('modal-status').value;
     if (!reply) { document.getElementById('modal-msg').innerHTML = '<div style="color:#ff4f4f;font-size:12px">Reply cannot be empty</div>'; return; }
     try {
-      await api('PATCH', `/api/tickets/${currentTicketId}/reply`, { reply, status });
+      await api('PATCH', '/api/tickets/' + currentTicketId + '/reply', { reply, status });
       document.getElementById('modal-msg').innerHTML = '<div style="color:#00e87a;font-size:12px">✅ Reply sent!</div>';
       setTimeout(() => { closeModal(); loadTickets(); }, 1000);
     } catch(e) {
@@ -1578,7 +1578,7 @@ function loadRoles() {}
   }
 
   async function quickClose(id) {
-    await api('PATCH', `/api/tickets/${id}/status`, { status: 'closed' });
+    await api('PATCH', '/api/tickets/' + id + '/status', { status: 'closed' });
     loadTickets();
   }
 
